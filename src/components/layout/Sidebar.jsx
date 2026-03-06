@@ -3,10 +3,10 @@ import { NAV_ITEMS } from '@/constants/navigation'
 
 export default function Sidebar() {
   return (
-    <aside className="fixed left-0 top-0 h-screen w-[220px] bg-white border-r border-slate-200 flex flex-col z-30">
-      
+    <aside className="fixed left-0 top-0 h-screen w-[256px] bg-white border-r border-[#E5E5E5] flex flex-col z-30">
+
       {/* Logo */}
-      <div className="h-16 flex items-center px-6 border-b border-slate-200">
+      <div className="h-16 flex items-center px-6 border-b border-[#E5E5E5]">
         <span className="text-lg font-bold text-slate-900">Docify Admin</span>
       </div>
 
@@ -17,9 +17,9 @@ export default function Sidebar() {
             key={item.path}
             to={item.path}
             className={({ isActive }) =>
-              `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
+              `flex items-center gap-3 px-3 py-2.5 rounded-[10px] text-sm font-medium transition-colors ${
                 isActive
-                  ? 'bg-blue-600 text-white'
+                  ? 'bg-[#0066CC] text-white'
                   : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
               }`
             }
@@ -31,7 +31,7 @@ export default function Sidebar() {
       </nav>
 
       {/* Version */}
-      <div className="px-6 py-4 border-t border-slate-200">
+      <div className="px-6 py-4 border-t border-[#E5E5E5]">
         <span className="text-xs text-slate-400">Docify Admin v1.0</span>
       </div>
 

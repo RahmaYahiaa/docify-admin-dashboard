@@ -1,0 +1,15 @@
+export const dashboardStats = {
+  totalDoctors: 150,
+  verifiedDoctors: 142,
+  pendingDoctors: 8,
+  totalPatients: 12458,
+  newPatientsToday: 23,
+  appointmentsToday: 86,
+  completedAppointments: 42,
+  upcomingAppointments: 44,
+  revenueToday: 12450,
+  cash: 3200,
+  card: 9250,
+  refundsToday: 450,
+  totalTransactions: 3,
+}

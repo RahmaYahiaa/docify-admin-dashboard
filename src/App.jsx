@@ -1,7 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import PageLayout from '@/components/layout/PageLayout'
 import DashboardPage from '@/pages/dashboard/DashboardPage'
-
+import DoctorVerificationPage from '@/pages/doctorVerification/DoctorVerificationPage'
 const Placeholder = ({ name }) => (
   <div className="flex items-center justify-center h-64">
     <span className="text-2xl font-semibold text-slate-400">{name} — Coming Soon</span>
@@ -19,7 +19,7 @@ export default function App() {
             <PageLayout>
               <Routes>
                 <Route path="/dashboard" element={<DashboardPage />} />
-                <Route path="/doctor-verification" element={<Placeholder name="Doctor Verification" />} />
+                <Route path="/doctor-verification" element={<DoctorVerificationPage />} />
                 <Route path="/specialties" element={<Placeholder name="Doctor Specialties" />} />
                 <Route path="/appointments" element={<Placeholder name="Appointments" />} />
                 <Route path="/payments" element={<Placeholder name="Payments" />} />

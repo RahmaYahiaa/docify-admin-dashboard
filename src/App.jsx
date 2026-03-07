@@ -7,6 +7,7 @@ import SpecialtiesPage from '@/pages/specialties/SpecialtiesPage'
 import UsersPage from '@/pages/users/UsersPage'
 import AppointmentsPage from '@/pages/appointments/AppointmentsPage'
 import PaymentsPage from '@/pages/payments/PaymentsPage'
+import LogsPage from '@/pages/logs/LogsPage'
 const Placeholder = ({ name }) => (
   <div className="flex items-center justify-center h-64">
     <span className="text-2xl font-semibold text-slate-400">{name} — Coming Soon</span>
@@ -30,7 +31,7 @@ export default function App() {
                 <Route path="/appointments" element={<AppointmentsPage />} />
                 <Route path="/payments" element={<PaymentsPage />} />
                 <Route path="/users" element={<UsersPage />} />
-                <Route path="/logs" element={<Placeholder name="Logs" />} />
+                <Route path="/logs" element={<LogsPage />} />
                 <Route path="/settings" element={<Placeholder name="Settings" />} />
               </Routes>
             </PageLayout>

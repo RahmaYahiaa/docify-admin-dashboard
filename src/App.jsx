@@ -6,6 +6,7 @@ import DoctorVerificationDetailsPage from '@/pages/doctorVerification/DoctorVeri
 import SpecialtiesPage from '@/pages/specialties/SpecialtiesPage'
 import UsersPage from '@/pages/users/UsersPage'
 import AppointmentsPage from '@/pages/appointments/AppointmentsPage'
+import PaymentsPage from '@/pages/payments/PaymentsPage'
 const Placeholder = ({ name }) => (
   <div className="flex items-center justify-center h-64">
     <span className="text-2xl font-semibold text-slate-400">{name} — Coming Soon</span>
@@ -27,7 +28,7 @@ export default function App() {
                 <Route path="/doctor-verification/:id" element={<DoctorVerificationDetailsPage />} />
                 <Route path="/specialties" element={<SpecialtiesPage />} />
                 <Route path="/appointments" element={<AppointmentsPage />} />
-                <Route path="/payments" element={<Placeholder name="Payments" />} />
+                <Route path="/payments" element={<PaymentsPage />} />
                 <Route path="/users" element={<UsersPage />} />
                 <Route path="/logs" element={<Placeholder name="Logs" />} />
                 <Route path="/settings" element={<Placeholder name="Settings" />} />

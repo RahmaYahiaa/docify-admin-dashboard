@@ -1,6 +1,6 @@
 import { Users, UserCheck, Calendar, DollarSign, RefreshCw } from 'lucide-react'
 import PageHeader from '@/components/shared/PageHeader'
-import StatsCard from '@/components/shared/StatsCard'
+import DashboardStatsCard from '@/components/shared/DashboardStatsCard'
 import { dashboardStats } from '@/features/dashboard/data/dashboardMockData'
 
 export default function DashboardPage() {
@@ -19,7 +19,7 @@ export default function DashboardPage() {
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
 
         {/* Total Doctors */}
-        <StatsCard
+        <DashboardStatsCard 
           title="Total Doctors"
           value={stats.totalDoctors}
           icon={UserCheck}
@@ -39,10 +39,10 @@ export default function DashboardPage() {
               </span>
             </span>
           </div>
-        </StatsCard>
+        </DashboardStatsCard >
 
         {/* Total Patients */}
-        <StatsCard
+        <DashboardStatsCard 
           title="Total Patients"
           value={stats.totalPatients.toLocaleString()}
           icon={Users}
@@ -51,10 +51,10 @@ export default function DashboardPage() {
           <div className="flex items-center gap-1 text-sm text-green-600 font-medium">
             <span>↑ +{stats.newPatientsToday} today</span>
           </div>
-        </StatsCard>
+        </DashboardStatsCard >
 
         {/* Appointments Today */}
-        <StatsCard
+        <DashboardStatsCard 
           title="Appointments Today"
           value={stats.appointmentsToday}
           icon={Calendar}
@@ -74,10 +74,10 @@ export default function DashboardPage() {
               </span>
             </span>
           </div>
-        </StatsCard>
+        </DashboardStatsCard >
 
         {/* Revenue Today */}
-        <StatsCard
+        <DashboardStatsCard 
           title="Revenue Today"
           value={`$${stats.revenueToday.toLocaleString()}`}
           icon={DollarSign}
@@ -97,10 +97,10 @@ export default function DashboardPage() {
               </span>
             </span>
           </div>
-        </StatsCard>
+        </DashboardStatsCard >
 
         {/* Refunds Today */}
-        <StatsCard
+        <DashboardStatsCard 
           title="Refunds Today"
           value={`$${stats.refundsToday}`}
           icon={RefreshCw}
@@ -112,7 +112,7 @@ export default function DashboardPage() {
               {stats.totalTransactions}
             </span>
           </div>
-        </StatsCard>
+        </DashboardStatsCard >
 
       </div>
     </div>

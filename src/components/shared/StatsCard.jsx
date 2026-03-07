@@ -1,15 +1,17 @@
-export default function StatsCard({ title, value, icon: Icon, iconColor = 'text-blue-600', children }) {
+export default function StatsCard({ title, value, icon: Icon, iconColor, children }) {
   return (
-    <div className="bg-white rounded-[10px] border border-[#E5E5E5] p-6 flex items-start justify-between">
-      <div className="flex flex-col gap-3 flex-1">
-        <div className={`${iconColor}`}>
-          <Icon size={28} strokeWidth={1.5} />
-        </div>
+    <div className="bg-white rounded-[10px] border border-[#E5E5E5] px-[17px] py-[17px]">
+      <div className="flex items-center justify-between">
         <div>
           <p className="text-sm text-slate-500 mb-1">{title}</p>
           <p className="text-2xl font-bold text-slate-900">{value}</p>
+          {children && <div className="mt-1">{children}</div>}
         </div>
-        {children && <div className="mt-1">{children}</div>}
+        {Icon && (
+          <div className={`${iconColor} opacity-80`}>
+            <Icon size={22} />
+          </div>
+        )}
       </div>
     </div>
   )

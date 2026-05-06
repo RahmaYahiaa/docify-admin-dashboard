@@ -9,29 +9,31 @@ import {
 } from 'lucide-react'
 import PageHeader from '@/components/shared/PageHeader'
 import StatsCard from '@/components/shared/StatsCard'
-import { logs as initialLogs } from '@/features/logs/data/mockData'
+import { useLogs } from '@/hooks/useLogs'
 
 const CATEGORY_STYLES = {
-  User:        'bg-purple-50 text-purple-700',
-  Doctor:      'bg-blue-50 text-blue-700',
-  Appointment: 'bg-orange-50 text-orange-700',
-  Payment:     'bg-green-50 text-green-700',
-  System:      'bg-slate-100 text-slate-600',
+  user:        'bg-purple-50 text-purple-700',
+  doctor:      'bg-blue-50 text-blue-700',
+  appointment: 'bg-orange-50 text-orange-700',
+  payment:     'bg-green-50 text-green-700',
+  system:      'bg-slate-100 text-slate-600',
 }
+
 const ACTION_ICONS = {
-  'User Suspended':        { icon: Ban,           color: 'text-red-500'    },
-  'Doctor Verified':       { icon: BadgeCheck,    color: 'text-green-500'  },
-  'Appointment Cancelled': { icon: CalendarX,     color: 'text-orange-500' },
-  'Refund Processed':      { icon: RefreshCw,     color: 'text-blue-500'   },
-  'User Reactivated':      { icon: UserCheck,     color: 'text-green-500'  },
-  'Doctor Rejected':       { icon: XCircle,       color: 'text-red-500'    },
-  'Payment Failed':        { icon: CreditCard,    color: 'text-red-500'    },
-  'Profile Updated':       { icon: Pencil,        color: 'text-blue-500'   },
-  'Appointment Created':   { icon: CalendarPlus,  color: 'text-green-500'  },
-  'Payment Processed':     { icon: CreditCard,    color: 'text-green-500'  },
-  'Admin Login':           { icon: LogIn,         color: 'text-blue-500'   },
-  'Refund Retry':          { icon: RefreshCw,     color: 'text-blue-500'   },
+  'User Suspended':        { icon: Ban,          color: 'text-red-500'    },
+  'Doctor Verified':       { icon: BadgeCheck,   color: 'text-green-500'  },
+  'Appointment Cancelled': { icon: CalendarX,    color: 'text-orange-500' },
+  'Refund Processed':      { icon: RefreshCw,    color: 'text-blue-500'   },
+  'User Reactivated':      { icon: UserCheck,    color: 'text-green-500'  },
+  'Doctor Rejected':       { icon: XCircle,      color: 'text-red-500'    },
+  'Payment Failed':        { icon: CreditCard,   color: 'text-red-500'    },
+  'Profile Updated':       { icon: Pencil,       color: 'text-blue-500'   },
+  'Appointment Created':   { icon: CalendarPlus, color: 'text-green-500'  },
+  'Payment Processed':     { icon: CreditCard,   color: 'text-green-500'  },
+  'Admin Login':           { icon: LogIn,        color: 'text-blue-500'   },
+  'Refund Retry':          { icon: RefreshCw,    color: 'text-blue-500'   },
 }
+
 function ActionIcon({ action }) {
   const config = ACTION_ICONS[action] || { icon: Info, color: 'text-slate-400' }
   const Icon = config.icon
@@ -56,30 +58,32 @@ function ActorIcon({ role }) {
   return icons[role] || <User size={12} className="text-slate-400" />
 }
 
+const ACTOR_ROLES = ['All Roles', 'Admin', 'Doctor', 'Patient', 'Assistant', 'System']
+
 export default function LogsPage() {
   const [search, setSearch] = useState('')
   const [showFilters, setShowFilters] = useState(false)
   const [actionType, setActionType] = useState('All Types')
   const [actorRole, setActorRole] = useState('All Roles')
 
-  const todayLogs    = initialLogs.filter(l => l.timestamp.date === 'Jan 27')
-  const adminActions = initialLogs.filter(l => l.actor.role === 'Admin')
-  const systemEvents = initialLogs.filter(l => l.actor.role === 'System')
+  const { data, isLoading, isError } = useLogs()
 
-  const ACTION_TYPES = ['All Types', ...new Set(initialLogs.map(l => l.category))]
-  const ACTOR_ROLES = ['All Roles', 'Admin', 'Doctor', 'Patient', 'Assistant', 'System']
+  const stats = data?.stats || {}
+  const logs = data?.logs || []
+
+  const ACTION_TYPES = ['All Types', ...new Set(logs.map(l => l.action.type))]
 
   const filtered = useMemo(() => {
-    return initialLogs.filter((log) => {
+    return logs.filter((log) => {
       const matchSearch =
-        log.action.toLowerCase().includes(search.toLowerCase()) ||
+        log.action.name.toLowerCase().includes(search.toLowerCase()) ||
         log.actor.name.toLowerCase().includes(search.toLowerCase()) ||
         log.target.name.toLowerCase().includes(search.toLowerCase())
-      const matchType = actionType === 'All Types' || log.category === actionType
-      const matchRole = actorRole === 'All Roles'  || log.actor.role === actorRole
+      const matchType = actionType === 'All Types' || log.action.type === actionType
+      const matchRole = actorRole === 'All Roles' || log.actor.role === actorRole
       return matchSearch && matchType && matchRole
     })
-  }, [search, actionType, actorRole])
+  }, [logs, search, actionType, actorRole])
 
   return (
     <div className="space-y-6">
@@ -91,10 +95,30 @@ export default function LogsPage() {
 
       {/* Stats */}
       <div className="grid grid-cols-4 gap-4">
-        <StatsCard title="Total Logs"     value={initialLogs.length} icon={FileText} iconColor="text-blue-500"   />
-        <StatsCard title="Today"          value={todayLogs.length}   icon={Clock}    iconColor="text-green-500"  />
-        <StatsCard title="Admin Actions"  value={adminActions.length} icon={Shield}  iconColor="text-red-500"    />
-        <StatsCard title="System Events"  value={systemEvents.length} icon={Cpu}    iconColor="text-purple-500" />
+        <StatsCard
+          title="Total Logs"
+          value={isLoading ? '—' : stats.total_logs ?? 0}
+          icon={FileText}
+          iconColor="text-blue-500"
+        />
+        <StatsCard
+          title="Today"
+          value={isLoading ? '—' : stats.today ?? 0}
+          icon={Clock}
+          iconColor="text-green-500"
+        />
+        <StatsCard
+          title="Admin Actions"
+          value={isLoading ? '—' : stats.admin_actions ?? 0}
+          icon={Shield}
+          iconColor="text-red-500"
+        />
+        <StatsCard
+          title="System Events"
+          value={isLoading ? '—' : stats.system_events ?? 0}
+          icon={Cpu}
+          iconColor="text-purple-500"
+        />
       </div>
 
       {/* Table Card */}
@@ -155,64 +179,83 @@ export default function LogsPage() {
         )}
 
         {/* Table */}
-        <table className="w-full">
-          <thead>
-            <tr className="border-b border-[#E5E5E5]">
-              {['ACTION', 'ACTOR', 'TARGET', 'TIMESTAMP'].map((h) => (
-                <th key={h} className="text-left px-4 py-3 text-xs font-medium text-slate-500 uppercase tracking-wide">
-                  {h}
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {filtered.map((log) => (
-              <tr key={log.id} className="border-b border-[#E5E5E5] last:border-0 hover:bg-slate-50 transition-colors">
-
-                {/* ACTION */}
-                <td className="px-4 py-4 w-[40%]">
-                  <div className="flex items-start gap-2.5">
-                    <div className="mt-0.5 shrink-0">
-                      <ActionIcon action={log.action} />
-                    </div>
-                    <div>
-                      <p className="text-sm font-semibold text-slate-900">{log.action}</p>
-                      <CategoryBadge category={log.category} />
-                      <p className="text-xs text-slate-400 mt-1">{log.detail}</p>
-                    </div>
-                  </div>
-                </td>
-
-                {/* ACTOR */}
-                <td className="px-4 py-4">
-                  <p className="text-sm font-medium text-slate-900">{log.actor.name}</p>
-                  <div className="flex items-center gap-1 mt-0.5">
-                    <ActorIcon role={log.actor.role} />
-                    <span className="text-xs text-slate-400">{log.actor.role}</span>
-                  </div>
-                </td>
-
-                {/* TARGET */}
-                <td className="px-4 py-4">
-                  <p className="text-sm font-medium text-slate-900">{log.target.name}</p>
-                  <p className="text-xs text-slate-400">{log.target.type}</p>
-                </td>
-
-                {/* TIMESTAMP */}
-                <td className="px-4 py-4 whitespace-nowrap">
-                  <p className="text-sm text-slate-900">{log.timestamp.date}</p>
-                  <p className="text-xs text-slate-400">{log.timestamp.time}</p>
-                </td>
-
-              </tr>
+        {isLoading ? (
+          <div className="p-8 space-y-4">
+            {[...Array(5)].map((_, i) => (
+              <div key={i} className="h-16 bg-slate-50 rounded-lg animate-pulse" />
             ))}
-          </tbody>
-        </table>
+          </div>
+        ) : isError ? (
+          <div className="p-8 text-center text-sm text-red-500">
+            Failed to load logs
+          </div>
+        ) : (
+          <table className="w-full">
+            <thead>
+              <tr className="border-b border-[#E5E5E5]">
+                {['ACTION', 'ACTOR', 'TARGET', 'TIMESTAMP'].map((h) => (
+                  <th key={h} className="text-left px-4 py-3 text-xs font-medium text-slate-500 uppercase tracking-wide">
+                    {h}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {filtered.map((log) => (
+                <tr key={log.id} className="border-b border-[#E5E5E5] last:border-0 hover:bg-slate-50 transition-colors">
+
+                  {/* ACTION */}
+                  <td className="px-4 py-4 w-[40%]">
+                    <div className="flex items-start gap-2.5">
+                      <div className="mt-0.5 shrink-0">
+                        <ActionIcon action={log.action.name} />
+                      </div>
+                      <div>
+                        <p className="text-sm font-semibold text-slate-900">{log.action.name}</p>
+                        <CategoryBadge category={log.action.type} />
+                        {log.action.reason && log.action.reason !== 'No reason provided' && (
+                          <p className="text-xs text-slate-400 mt-1">
+                            Reason: {log.action.reason}
+                          </p>
+                        )}
+                        {log.action.message && (
+                          <p className="text-xs text-slate-400 mt-0.5">{log.action.message}</p>
+                        )}
+                      </div>
+                    </div>
+                  </td>
+
+                  {/* ACTOR */}
+                  <td className="px-4 py-4">
+                    <p className="text-sm font-medium text-slate-900">{log.actor.name}</p>
+                    <div className="flex items-center gap-1 mt-0.5">
+                      <ActorIcon role={log.actor.role} />
+                      <span className="text-xs text-slate-400">{log.actor.role}</span>
+                    </div>
+                  </td>
+
+                  {/* TARGET */}
+                  <td className="px-4 py-4">
+                    <p className="text-sm font-medium text-slate-900">{log.target.name}</p>
+                    <p className="text-xs text-slate-400">{log.target.type}</p>
+                  </td>
+
+                  {/* TIMESTAMP */}
+                  <td className="px-4 py-4 whitespace-nowrap">
+                    <p className="text-sm text-slate-900">{log.timestamp.date}</p>
+                    <p className="text-xs text-slate-400">{log.timestamp.time}</p>
+                  </td>
+
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
 
         {/* Footer */}
         <div className="px-4 py-3 border-t border-[#E5E5E5]">
           <span className="text-sm text-slate-500">
-            Showing {filtered.length} of {initialLogs.length} logs
+            Showing {filtered.length} of {stats.total_logs || 0} logs
           </span>
         </div>
 

@@ -1,68 +1,149 @@
-import { useState } from 'react'
-import { Plus, Edit, Ban, CheckCircle, Activity } from 'lucide-react'
-import { toast } from 'sonner'
-import PageHeader from '@/components/shared/PageHeader'
-import StatsCard from '@/components/shared/StatsCard'
-import StatusBadge from '@/components/shared/StatusBadge'
-import DisableSpecialtyModal from './components/DisableSpecialtyModal'
-import SpecialtyForm from './components/SpecialtyForm'
-import { specialties as initialData } from '@/features/specialties/data/mockData'
-import { Stethoscope } from 'lucide-react'
+import { useState } from "react";
+import { Plus, Edit, Ban, CheckCircle, Activity } from "lucide-react";
+import PageHeader from "@/components/shared/PageHeader";
+import StatsCard from "@/components/shared/StatsCard";
+import StatusBadge from "@/components/shared/StatusBadge";
+import DisableSpecialtyModal from "./components/DisableSpecialtyModal";
+import SpecialtyForm from "./components/SpecialtyForm";
+import { Stethoscope } from "lucide-react";
+import { toast } from "sonner";
+import {
+  useSpecialties,
+  useCreateSpecialty,
+  useUpdateSpecialty,
+  useActivateSpecialty,
+  useDisableSpecialty,
+} from "@/hooks/useSpecialties";
+
+const BASE_URL = import.meta.env.VITE_BASE_URL || "";
 
 export default function SpecialtiesPage() {
-  const [specialties, setSpecialties] = useState(initialData)
-  const [showAddForm, setShowAddForm] = useState(false)
-  const [editSpecialty, setEditSpecialty] = useState(null)
-  const [disableTarget, setDisableTarget] = useState(null)
+  const [showAddForm, setShowAddForm] = useState(false);
+  const [editSpecialty, setEditSpecialty] = useState(null);
+  const [disableTarget, setDisableTarget] = useState(null);
 
-  const totalActive = specialties.filter((s) => s.status === 'Active').length
-  const totalDisabled = specialties.filter((s) => s.status === 'Disabled').length
+  const { data, isLoading, isError } = useSpecialties();
+  const { mutate: createSpecialty, isPending: creating } = useCreateSpecialty();
+  const { mutate: updateSpecialty, isPending: updating } = useUpdateSpecialty();
+  const { mutate: activateSpecialty } = useActivateSpecialty();
+  const { mutate: disableSpecialty } = useDisableSpecialty();
+
+  const specialties = data?.specialties || [];
+  const stats = data?.stats || {};
+
+  // Handles absolute and relative paths
+  const getImageUrl = (url) => {
+    if (!url) return "/images/default-specialization.png";
+    return url.startsWith("http") ? url : `${BASE_URL}${url}`;
+  };
 
   const handleSave = (form) => {
-    if (editSpecialty) {
-      setSpecialties((prev) =>
-        prev.map((s) =>
-          s.id === editSpecialty.id
-            ? { ...s, name: form.name, description: form.description, image: form.image }
-            : s
-        )
-      )
-    } else {
-      const newSpecialty = {
-        id: `SP${Date.now()}`,
-        name: form.name,
-        description: form.description,
-        doctors: 0,
-        status: 'Active',
-        image: typeof form.image === 'string' ? form.image : URL.createObjectURL(form.image),
-      }
-      setSpecialties((prev) => [...prev, newSpecialty])
+    const formData = new FormData();
+
+    if (form.name?.trim()) {
+      formData.append("name", form.name.trim());
     }
-    setEditSpecialty(null)
-  }
+
+    if (form.description?.trim()) {
+      formData.append("description", form.description.trim());
+    }
+
+    if (form.image instanceof File) {
+      formData.append("icon_url", form.image);
+    }
+
+    if (editSpecialty) {
+      updateSpecialty(
+        {
+          id: editSpecialty.id,
+          data: formData,
+        },
+        {
+          onSuccess: () => {
+            toast.success("Specialty updated successfully!");
+            setEditSpecialty(null);
+          },
+
+          onError: (err) => {
+            const msg =
+              err?.response?.data?.message ||
+              err?.response?.data?.error ||
+              Object.values(err?.response?.data?.errors || {})[0]?.[0] ||
+              "Failed to update specialty";
+
+            toast.error(msg);
+          },
+        },
+      );
+    } else {
+      // CREATE
+      if (!(form.image instanceof File)) {
+        toast.error("Please upload specialty image");
+        return;
+      }
+
+      createSpecialty(formData, {
+        onSuccess: () => {
+          toast.success("Specialty created successfully!");
+          setShowAddForm(false);
+        },
+
+        onError: (err) => {
+          const msg =
+            err?.response?.data?.message ||
+            err?.response?.data?.error ||
+            Object.values(err?.response?.data?.errors || {})[0]?.[0] ||
+            "Failed to create specialty";
+
+          toast.error(msg);
+        },
+      });
+    }
+  };
 
   const handleDisable = () => {
-    setSpecialties((prev) =>
-      prev.map((s) =>
-        s.id === disableTarget.id ? { ...s, status: 'Disabled' } : s
-      )
-    )
-    toast.success(`"${disableTarget.name}" has been disabled`)
-    setDisableTarget(null)
+    disableSpecialty(disableTarget.id, {
+      onSuccess: () => setDisableTarget(null),
+    });
+  };
+
+  const handleEnable = (item) => {
+    activateSpecialty(item.id, {
+      onSuccess: () => {
+        toast.success("Specialty enabled");
+      },
+    });
+  };
+
+  if (isLoading) {
+    return (
+      <div className="space-y-6">
+        <PageHeader
+          title="Doctor Specialties"
+          subtitle="Manage medical specialties available on the platform"
+        />
+        <div className="grid grid-cols-3 gap-4">
+          {[...Array(6)].map((_, i) => (
+            <div
+              key={i}
+              className="bg-white rounded-[10px] border border-[#E5E5E5] h-64 animate-pulse"
+            />
+          ))}
+        </div>
+      </div>
+    );
   }
 
-  const handleEnable = (specialty) => {
-    setSpecialties((prev) =>
-      prev.map((s) =>
-        s.id === specialty.id ? { ...s, status: 'Active' } : s
-      )
-    )
-    toast.success(`"${specialty.name}" has been enabled`)
+  if (isError) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <p className="text-sm text-red-500">Failed to load specialties</p>
+      </div>
+    );
   }
 
   return (
     <div className="space-y-6">
-
       {/* Header */}
       <PageHeader
         title="Doctor Specialties"
@@ -82,19 +163,19 @@ export default function SpecialtiesPage() {
       <div className="grid grid-cols-3 gap-4">
         <StatsCard
           title="Total Specialties"
-          value={specialties.length}
+          value={stats.total ?? 0}
           icon={Stethoscope}
           iconColor="text-blue-500"
         />
         <StatsCard
           title="Active"
-          value={totalActive}
+          value={stats.active ?? 0}
           icon={CheckCircle}
           iconColor="text-green-500"
         />
         <StatsCard
           title="Disabled"
-          value={totalDisabled}
+          value={stats.disabled ?? 0}
           icon={Ban}
           iconColor="text-red-500"
         />
@@ -102,19 +183,22 @@ export default function SpecialtiesPage() {
 
       {/* Grid */}
       <div className="grid grid-cols-3 gap-4">
-        {specialties.map((specialty) => (
+        {specialties.map((item) => (
           <div
-            key={specialty.id}
+            key={item.id}
             className="bg-white rounded-[10px] border border-[#E5E5E5] overflow-hidden"
           >
-            {/* Image */}
+            {/* Thumbnail */}
             <div className="relative">
               <img
-                src={specialty.image}
-                alt={specialty.name}
-                className="w-full h-44 object-cover"
+                src={getImageUrl(item.icon_url)}
+                alt={item.name}
+                className="w-full h-44 object-cover bg-slate-100"
+                onError={(e) => {
+                  e.target.src = "/images/default-specialization.png";
+                }}
               />
-              {specialty.status === 'Disabled' && (
+              {item.status === "disabled" && (
                 <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
                   <span className="bg-red-500 text-white text-xs font-semibold px-3 py-1 rounded-full">
                     Disabled
@@ -123,31 +207,33 @@ export default function SpecialtiesPage() {
               )}
             </div>
 
-            {/* Content */}
+            {/* Info */}
             <div className="p-4">
               <div className="flex items-center justify-between mb-1">
-                <h3 className="font-semibold text-slate-900">{specialty.name}</h3>
-                <StatusBadge status={specialty.status} />
+                <h3 className="font-semibold text-slate-900">{item.name}</h3>
+                <StatusBadge status={item.status} />
               </div>
-              <p className="text-sm text-slate-500 mb-3">{specialty.description}</p>
+              <p className="text-sm text-slate-500 mb-3 line-clamp-2">
+                {item.description || "No description provided"}
+              </p>
               <div className="flex items-center gap-1.5 text-xs text-slate-400 mb-4">
                 <Activity size={12} />
-                {specialty.doctors} doctors
+                {item.doctors_count} doctors
               </div>
 
               {/* Actions */}
               <div className="flex items-center justify-between pt-3 border-t border-[#E5E5E5]">
                 <button
-                  onClick={() => setEditSpecialty(specialty)}
+                  onClick={() => setEditSpecialty(item)}
                   className="flex items-center gap-1.5 text-sm text-[#0066CC] hover:text-[#0052a3] font-medium transition-colors"
                 >
                   <Edit size={14} />
                   Edit
                 </button>
 
-                {specialty.status === 'Active' ? (
+                {item.status === "active" ? (
                   <button
-                    onClick={() => setDisableTarget(specialty)}
+                    onClick={() => setDisableTarget(item)}
                     className="flex items-center gap-1.5 text-sm text-red-500 hover:text-red-600 font-medium transition-colors"
                   >
                     <Ban size={14} />
@@ -155,7 +241,7 @@ export default function SpecialtiesPage() {
                   </button>
                 ) : (
                   <button
-                    onClick={() => handleEnable(specialty)}
+                    onClick={() => handleEnable(item)}
                     className="flex items-center gap-1.5 text-sm text-green-600 hover:text-green-700 font-medium transition-colors"
                   >
                     <CheckCircle size={14} />
@@ -168,30 +254,37 @@ export default function SpecialtiesPage() {
         ))}
       </div>
 
-      {/* Modals */}
+      {/* Add Modal */}
       {showAddForm && (
         <SpecialtyForm
           onClose={() => setShowAddForm(false)}
           onSave={handleSave}
+          loading={creating}
         />
       )}
 
+      {/* Edit Modal */}
       {editSpecialty && (
         <SpecialtyForm
-          specialty={editSpecialty}
+          specialty={{
+            name: editSpecialty.name,
+            description: editSpecialty.description || "",
+            image: getImageUrl(editSpecialty.icon_url),
+          }}
           onClose={() => setEditSpecialty(null)}
           onSave={handleSave}
+          loading={updating}
         />
       )}
 
+      {/* Disable Confirm Modal */}
       {disableTarget && (
         <DisableSpecialtyModal
-          specialty={disableTarget}
+          specialty={{ name: disableTarget.name }}
           onClose={() => setDisableTarget(null)}
           onConfirm={handleDisable}
         />
       )}
-
     </div>
-  )
+  );
 }

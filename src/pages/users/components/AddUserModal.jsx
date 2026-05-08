@@ -1,14 +1,7 @@
 import { useState } from "react";
-import {
-  X,
-  Stethoscope,
-  Heart,
-  User,
-  Shield,
-  Info,
-  Upload,
-} from "lucide-react";
+import { X, Stethoscope, Shield, Info, Upload } from "lucide-react";
 import { toast } from "sonner";
+import { useSpecializations } from "@/hooks/useSpecializations";
 
 const ROLES = [
   {
@@ -17,95 +10,151 @@ const ROLES = [
     desc: "Medical professional providing care",
     icon: Stethoscope,
     color: "text-blue-600",
-    border: "border-blue-200 hover:border-blue-400",
-  },
-  {
-    id: "Patient",
-    label: "Patient",
-    desc: "Individual receiving medical care",
-    icon: Heart,
-    color: "text-green-600",
-    border: "border-green-200 hover:border-green-400",
-  },
-  {
-    id: "Assistant",
-    label: "Assistant",
-    desc: "Supporting doctor with daily tasks",
-    icon: User,
-    color: "text-purple-600",
-    border: "border-purple-200 hover:border-purple-400",
+    activeBg: "bg-blue-50",
+    border: "border-[#E5E5E5] hover:border-blue-300",
   },
   {
     id: "Admin",
     label: "Admin",
     desc: "Platform administrator",
     icon: Shield,
-    color: "text-red-600",
-    border: "border-red-200 hover:border-red-400",
+    color: "text-purple-600",
+    activeBg: "bg-purple-50",
+    border: "border-[#E5E5E5] hover:border-purple-300",
   },
 ];
-const DOCTORS = [
-  { id: "D001", name: "Dr. Sarah Johnson", specialty: "Cardiologist" },
-  { id: "D002", name: "Dr. Michael Chen", specialty: "Pediatrician" },
-  { id: "D003", name: "Dr. Emily Williams", specialty: "Dermatologist" },
-  { id: "D004", name: "Dr. Ahmed Hassan", specialty: "Neurologist" },
-  { id: "D005", name: "Dr. Lisa Anderson", specialty: "Orthopedic Surgeon" },
+
+const ADMIN_LEVELS = [
+  { label: "Admin", value: "admin" },
+  { label: "Super Admin", value: "super admin" },
 ];
 
-export default function AddUserModal({ onClose, onSave }) {
+export default function AddUserModal({ onClose, onSave, loading = false }) {
+  const [errors, setErrors] = useState({});
   const [step, setStep] = useState(1);
   const [selectedRole, setSelectedRole] = useState(null);
-  const [passwordMethod, setPasswordMethod] = useState("auto");
-  const [doctorSearch, setDoctorSearch] = useState("");
-  const [showDoctorList, setShowDoctorList] = useState(false);
+
+  // Specialization search state
+  const [selectedSpecialization, setSelectedSpecialization] = useState(null);
+  const [specializationSearch, setSpecializationSearch] = useState("");
+  const [showSpecializations, setShowSpecializations] = useState(false);
+
+  // Certificate upload preview
   const [certificatePreview, setCertificatePreview] = useState(null);
+
   const [form, setForm] = useState({
-    name: "",
+    first_name: "",
+    last_name: "",
     email: "",
     phone: "",
-    specialty: "",
-    licenseNumber: "",
+    // Doctor
+    specialization_id: "",
     certificate: null,
-    linkedDoctor: "",
-    linkedDoctorId: "",
-    adminLevel: "",
+    // Admin
+    admin_level: "admin",
   });
+  const { data: specData, isLoading: specLoading } = useSpecializations();
 
-  const handleCreate = () => {
-    if (!form.name.trim()) return toast.error("Full name is required");
-    if (!form.email.trim()) return toast.error("Email is required");
-    onSave({ ...form, role: selectedRole, status: "Active" });
-    toast.success("User created successfully!");
-    onClose();
+  const SPECIALIZATIONS = Array.isArray(specData?.data?.data)
+    ? specData.data.data
+    : Array.isArray(specData?.data)
+      ? specData.data
+      : [];
+
+  const handleChange = (key) => (e) => {
+    setForm((prev) => ({ ...prev, [key]: e.target.value }));
+    setErrors((prev) => ({ ...prev, [key]: "" }));
   };
 
+  const resetToStep1 = () => {
+    setStep(1);
+    setSelectedRole(null);
+    setForm({
+      first_name: "",
+      last_name: "",
+      email: "",
+      phone: "",
+      specialization_id: "",
+      certificate: null,
+      admin_level: "admin",
+    });
+    setErrors({});
+    setSelectedSpecialization(null);
+    setSpecializationSearch("");
+    setShowSpecializations(false);
+    setCertificatePreview(null);
+  };
+
+  const validateForm = () => {
+    const newErrors = {};
+
+    if (!form.first_name.trim())
+      newErrors.first_name = "First name is required";
+    if (!form.last_name.trim()) newErrors.last_name = "Last name is required";
+
+    if (!form.email.trim()) {
+      newErrors.email = "Email is required";
+    } else if (!/^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i.test(form.email)) {
+      newErrors.email = "Invalid email address";
+    }
+
+    if (!form.phone.trim()) {
+      newErrors.phone = "Phone number is required";
+    } else if (!/^(\+20|0)?1[0125][0-9]{8}$/.test(form.phone)) {
+      newErrors.phone = "Invalid Egyptian phone number";
+    }
+
+    if (selectedRole === "Doctor") {
+      if (!form.specialization_id)
+        newErrors.specialization_id = "Specialization is required";
+      if (!form.certificate)
+        newErrors.certificate = "Medical certificate is required";
+    }
+
+    if (selectedRole === "Admin") {
+      if (!form.admin_level) newErrors.admin_level = "Admin level is required";
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const handleCreate = () => {
+    if (!validateForm()) {
+      toast.error("Please fix the form errors");
+      return;
+    }
+    onSave({ ...form, role: selectedRole });
+  };
+
+  // Render
   return (
     <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-[10px] w-full max-w-lg max-h-[90vh] overflow-y-auto">
+      <div className="bg-white rounded-[10px] w-full max-w-lg max-h-[90vh] overflow-y-auto shadow-xl">
         {/* Header */}
         <div className="flex items-center justify-between p-5 border-b border-[#E5E5E5]">
           <div>
             <h2 className="text-base font-semibold text-slate-900">
               Add New User
             </h2>
-            <p className="text-xs text-slate-500">
+            <p className="text-xs text-slate-400">
               {step === 1
                 ? "Select user role"
-                : `Creating ${selectedRole?.toLowerCase()}`}
+                : `Creating ${selectedRole?.toLowerCase()} account`}
             </p>
           </div>
           <button
             onClick={onClose}
-            className="text-slate-400 hover:text-slate-600"
+            className="text-slate-400 hover:text-slate-600 transition-colors"
           >
             <X size={18} />
           </button>
         </div>
 
-        <div className="p-5">
-          {/* Step 1 — Role Selection */}
-          {step === 1 && (
-            <div className="grid grid-cols-2 gap-3">
+        {/* ── Role Selection ── */}
+        {step === 1 && (
+          <div className="p-5">
+            <div className="grid grid-cols-2 gap-4">
               {ROLES.map((role) => {
                 const Icon = role.icon;
                 return (
@@ -114,10 +163,15 @@ export default function AddUserModal({ onClose, onSave }) {
                     onClick={() => {
                       setSelectedRole(role.id);
                       setStep(2);
+                      setErrors({});
                     }}
-                    className={`p-4 rounded-[10px] border-2 text-left transition-colors ${role.border}`}
+                    className={`p-5 rounded-[10px] border-2 text-left transition-all ${role.border} hover:shadow-sm`}
                   >
-                    <Icon size={24} className={`${role.color} mb-2`} />
+                    <div
+                      className={`w-10 h-10 rounded-lg ${role.activeBg} flex items-center justify-center mb-3`}
+                    >
+                      <Icon size={20} className={role.color} />
+                    </div>
                     <p className="text-sm font-semibold text-slate-900">
                       {role.label}
                     </p>
@@ -126,374 +180,367 @@ export default function AddUserModal({ onClose, onSave }) {
                 );
               })}
             </div>
-          )}
 
-          {/* Step 2 — Form */}
-          {step === 2 && (
-            <div className="space-y-5">
-              {/* Basic Info */}
-              <div className="space-y-4">
-                <h3 className="text-sm font-semibold text-slate-900">
-                  Basic Information
-                </h3>
+            <div className="mt-4 flex items-start gap-2 bg-slate-50 border border-[#E5E5E5] rounded-lg px-4 py-3">
+              <Info size={14} className="text-slate-400 shrink-0 mt-0.5" />
+              <p className="text-xs text-slate-500">
+                Patients and assistants register through the mobile app. Only
+                doctors and admins are created from the dashboard.
+              </p>
+            </div>
+          </div>
+        )}
 
-                {[
-                  {
-                    label: "Full Name",
-                    key: "name",
-                    placeholder: "Enter full name",
-                  },
-                  {
-                    label: "Email Address",
-                    key: "email",
-                    placeholder: "email@example.com",
-                  },
-                  {
-                    label: "Phone Number",
-                    key: "phone",
-                    placeholder: "+1 (555) 123-4567",
-                  },
-                ].map((field) => (
-                  <div key={field.key} className="space-y-1.5">
-                    <label className="text-sm font-medium text-slate-700">
-                      {field.label} <span className="text-red-500">*</span>
-                    </label>
-                    <input
-                      placeholder={field.placeholder}
-                      value={form[field.key]}
-                      onChange={(e) =>
-                        setForm((p) => ({ ...p, [field.key]: e.target.value }))
-                      }
-                      className="w-full px-3 py-2.5 text-sm border border-[#E5E5E5] rounded-lg outline-none focus:border-[#0066CC]"
-                    />
-                  </div>
-                ))}
-              </div>
+        {/* ── Form ── */}
+        {step === 2 && (
+          <div className="p-5 space-y-5">
+            {/* Basic Info */}
+            <section className="space-y-4">
+              <h3 className="text-sm font-semibold text-slate-900">
+                Basic Information
+              </h3>
 
-              {/* Password */}
-              <div className="space-y-3">
-                <h3 className="text-sm font-semibold text-slate-900">
-                  Temporary Password
-                </h3>
-                <div className="grid grid-cols-2 gap-3">
-                  {[
-                    {
-                      id: "auto",
-                      label: "Auto-generate",
-                      desc: "System creates secure password",
-                    },
-                    {
-                      id: "manual",
-                      label: "Manual",
-                      desc: "Set password yourself",
-                    },
-                  ].map((m) => (
-                    <button
-                      key={m.id}
-                      onClick={() => setPasswordMethod(m.id)}
-                      className="p-3 rounded-lg border border-[#E5E5E5] bg-white text-left hover:bg-slate-50 transition-colors"
-                    >
-                      <div className="flex items-center gap-2 mb-1">
-                        <div
-                          className={`w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0 transition-colors ${
-                            passwordMethod === m.id
-                              ? "border-[#0066CC]"
-                              : "border-slate-300"
-                          }`}
-                        >
-                          {passwordMethod === m.id && (
-                            <div className="w-2 h-2 rounded-full bg-[#0066CC]" />
-                          )}
-                        </div>
-                        <p className="text-sm font-medium text-slate-900">
-                          {m.label}
-                        </p>
-                      </div>
-                      <p className="text-xs text-slate-400 ml-6">{m.desc}</p>
-                    </button>
-                  ))}
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <label className="text-sm font-medium text-slate-700">
+                    First Name <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    value={form.first_name}
+                    onChange={handleChange("first_name")}
+                    placeholder="First name"
+                    className={`w-full px-3 py-2.5 text-sm border rounded-lg outline-none transition-colors ${
+                      errors.first_name
+                        ? "border-red-400 focus:border-red-500"
+                        : "border-[#E5E5E5] focus:border-[#0066CC]"
+                    }`}
+                  />
+                  {errors.first_name && (
+                    <p className="text-xs text-red-500">{errors.first_name}</p>
+                  )}
                 </div>
 
-                {/* Info box */}
-                <div className="flex items-center gap-2 bg-blue-50 border border-blue-200 rounded-lg px-4 py-3">
-                  <Info size={16} className="text-blue-500 shrink-0" />
-                  <p className="text-sm text-blue-700">
-                    User will be required to change this password on first login
-                    for security.
-                  </p>
+                <div className="space-y-1.5">
+                  <label className="text-sm font-medium text-slate-700">
+                    Last Name <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    value={form.last_name}
+                    onChange={handleChange("last_name")}
+                    placeholder="Last name"
+                    className={`w-full px-3 py-2.5 text-sm border rounded-lg outline-none transition-colors ${
+                      errors.last_name
+                        ? "border-red-400 focus:border-red-500"
+                        : "border-[#E5E5E5] focus:border-[#0066CC]"
+                    }`}
+                  />
+                  {errors.last_name && (
+                    <p className="text-xs text-red-500">{errors.last_name}</p>
+                  )}
                 </div>
               </div>
-              {/* Role Specific */}
-              {selectedRole === "Doctor" && (
-                <div className="space-y-4">
-                  <h3 className="text-sm font-semibold text-slate-900">
-                    Doctor Information
-                  </h3>
 
-                  {/* Specialty */}
-                  <div className="space-y-1.5">
-                    <label className="text-sm font-medium text-slate-700">
-                      Specialty <span className="text-red-500">*</span>
-                    </label>
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium text-slate-700">
+                  Email Address <span className="text-red-500">*</span>
+                </label>
+                <input
+                  value={form.email}
+                  onChange={handleChange("email")}
+                  placeholder="email@example.com"
+                  type="email"
+                  className={`w-full px-3 py-2.5 text-sm border rounded-lg outline-none transition-colors ${
+                    errors.email
+                      ? "border-red-400 focus:border-red-500"
+                      : "border-[#E5E5E5] focus:border-[#0066CC]"
+                  }`}
+                />
+                {errors.email && (
+                  <p className="text-xs text-red-500">{errors.email}</p>
+                )}
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium text-slate-700">
+                  Phone Number <span className="text-red-500">*</span>
+                </label>
+                <input
+                  value={form.phone}
+                  onChange={handleChange("phone")}
+                  placeholder="+20 100 000 0000"
+                  className={`w-full px-3 py-2.5 text-sm border rounded-lg outline-none transition-colors ${
+                    errors.phone
+                      ? "border-red-400 focus:border-red-500"
+                      : "border-[#E5E5E5] focus:border-[#0066CC]"
+                  }`}
+                />
+                {errors.phone && (
+                  <p className="text-xs text-red-500">{errors.phone}</p>
+                )}
+              </div>
+            </section>
+
+            {/* Password note — always auto-generated by backend */}
+            <div className="flex items-start gap-2 bg-blue-50 border border-blue-200 rounded-lg px-4 py-3">
+              <Info size={14} className="text-blue-500 shrink-0 mt-0.5" />
+              <p className="text-xs text-blue-700">
+                A secure temporary password will be auto-generated and emailed
+                to the user. They must change it on first login.
+              </p>
+            </div>
+
+            {/*  Doctor Section  */}
+            {selectedRole === "Doctor" && (
+              <section className="space-y-4">
+                <h3 className="text-sm font-semibold text-slate-900">
+                  Doctor Information
+                </h3>
+
+                {/* Specialization searchable dropdown */}
+                <div className="space-y-1.5">
+                  <label className="text-sm font-medium text-slate-700">
+                    Specialization <span className="text-red-500">*</span>
+                  </label>
+
+                  <div className="relative">
                     <input
-                      value={form.specialty}
-                      onChange={(e) =>
-                        setForm((p) => ({ ...p, specialty: e.target.value }))
-                      }
-                      placeholder="e.g., Cardiology"
-                      className="w-full px-3 py-2.5 text-sm border border-[#E5E5E5] rounded-lg outline-none focus:border-[#0066CC]"
+                      value={specializationSearch}
+                      onChange={(e) => {
+                        setSpecializationSearch(e.target.value);
+                        setShowSpecializations(true);
+                        setSelectedSpecialization(null);
+                        setForm((p) => ({ ...p, specialization_id: "" }));
+                        setErrors((p) => ({ ...p, specialization_id: "" }));
+                      }}
+                      onFocus={() => setShowSpecializations(true)}
+                      placeholder="Search specialization..."
+                      className={`w-full px-3 py-2.5 text-sm border rounded-lg outline-none transition-colors ${
+                        errors.specialization_id
+                          ? "border-red-400"
+                          : "border-[#E5E5E5] focus:border-[#0066CC]"
+                      }`}
                     />
-                  </div>
 
-                  {/* License Number */}
-                  <div className="space-y-1.5">
-                    <label className="text-sm font-medium text-slate-700">
-                      Medical License Number{" "}
-                      <span className="text-red-500">*</span>
-                    </label>
-                    <input
-                      value={form.licenseNumber}
-                      onChange={(e) =>
-                        setForm((p) => ({
-                          ...p,
-                          licenseNumber: e.target.value,
-                        }))
-                      }
-                      placeholder="Enter license number"
-                      className="w-full px-3 py-2.5 text-sm border border-[#E5E5E5] rounded-lg outline-none focus:border-[#0066CC]"
-                    />
-                  </div>
-
-                  {/* Medical Certificate Upload */}
-                  <div className="space-y-1.5">
-                    <label className="text-sm font-medium text-slate-700">
-                      Medical Certificate
-                    </label>
-
-                    {certificatePreview ? (
-                      <div className="flex items-center justify-between p-3 border border-[#E5E5E5] rounded-lg bg-slate-50">
-                        <div className="flex items-center gap-3">
-                          <div className="w-8 h-8 bg-red-50 rounded-lg flex items-center justify-center">
-                            <span className="text-xs font-bold text-red-500">
-                              PDF
-                            </span>
+                    {/* Dropdown list */}
+                    {showSpecializations && !selectedSpecialization && (
+                      <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-[#E5E5E5] rounded-lg shadow-lg z-20 max-h-52 overflow-y-auto">
+                        {specLoading ? (
+                          <div className="px-4 py-3 text-sm text-slate-400">
+                            Loading...
                           </div>
-                          <div>
-                            <p className="text-sm font-medium text-slate-900">
-                              {certificatePreview.name}
-                            </p>
-                            <p className="text-xs text-slate-400">
-                              {certificatePreview.size}
-                            </p>
+                        ) : SPECIALIZATIONS.filter((s) =>
+                            (s?.name || "")
+                              .toLowerCase()
+                              .includes(specializationSearch.toLowerCase()),
+                          ).length === 0 ? (
+                          <div className="px-4 py-3 text-sm text-slate-400">
+                            No specializations found
                           </div>
-                        </div>
-                        <button
-                          onClick={() => {
-                            setCertificatePreview(null);
-                            setForm((p) => ({ ...p, certificate: null }));
-                          }}
-                          className="p-1 hover:bg-slate-200 rounded-lg transition-colors"
-                        >
-                          <X size={14} className="text-slate-500" />
-                        </button>
+                        ) : (
+                          SPECIALIZATIONS.filter((s) =>
+                            (s?.name || "")
+                              .toLowerCase()
+                              .includes(specializationSearch.toLowerCase()),
+                          )
+                            .slice(0, 8)
+                            .map((spec) => (
+                              <button
+                                key={spec.id}
+                                type="button"
+                                onClick={() => {
+                                  setSelectedSpecialization(spec);
+                                  setForm((p) => ({
+                                    ...p,
+                                    specialization_id: spec.id,
+                                  }));
+                                  setSpecializationSearch(spec.name);
+                                  setShowSpecializations(false);
+                                  setErrors((p) => ({
+                                    ...p,
+                                    specialization_id: "",
+                                  }));
+                                }}
+                                className="w-full px-4 py-2.5 text-left hover:bg-slate-50 transition-colors"
+                              >
+                                <p className="text-sm font-medium text-slate-900">
+                                  {spec.name}
+                                </p>
+                                {spec.description && (
+                                  <p className="text-xs text-slate-400 mt-0.5 truncate">
+                                    {spec.description}
+                                  </p>
+                                )}
+                              </button>
+                            ))
+                        )}
                       </div>
-                    ) : (
-                      <label className="flex flex-col items-center justify-center gap-2 border-2 border-dashed border-[#E5E5E5] rounded-lg h-28 cursor-pointer hover:border-[#0066CC] transition-colors">
-                        <Upload size={20} className="text-slate-400" />
-                        <span className="text-sm text-slate-500">
-                          Drop file here or click to browse
-                        </span>
-                        <span className="text-xs text-slate-400">
-                          PDF, JPG, PNG (Max 5MB)
-                        </span>
-                        <input
-                          type="file"
-                          accept=".pdf,.jpg,.jpeg,.png"
-                          className="hidden"
-                          onChange={(e) => {
-                            const file = e.target.files[0];
-                            if (!file) return;
-                            const sizeMB = (file.size / 1024 / 1024).toFixed(1);
-                            setCertificatePreview({
-                              name: file.name,
-                              size: `${sizeMB} MB`,
-                            });
-                            setForm((p) => ({ ...p, certificate: file }));
-                          }}
-                        />
-                      </label>
                     )}
                   </div>
 
-                  {/* Warning */}
-                  <div className="flex items-center gap-2 bg-orange-50 border border-orange-300 rounded-lg px-4 py-3">
-                    <Info size={16} className="text-orange-500 shrink-0" />
-                    <p className="text-sm text-orange-700">
-                      Doctor account will be marked as "Pending Verification"
-                      until credentials are reviewed.
-                    </p>
-                  </div>
-                </div>
-              )}
-              {selectedRole === "Assistant" && (
-                <div className="space-y-4">
-                  <h3 className="text-sm font-semibold text-slate-900">
-                    Assistant Information
-                  </h3>
-
-                  <div className="space-y-1.5">
-                    <label className="text-sm font-medium text-slate-700">
-                      Linked Doctor <span className="text-red-500">*</span>
-                    </label>
-
-                    {/* Search Input */}
-                    <div className="relative">
-                      <input
-                        value={doctorSearch}
-                        onChange={(e) => {
-                          setDoctorSearch(e.target.value);
-                          setShowDoctorList(true);
-                          setForm((p) => ({
-                            ...p,
-                            linkedDoctor: "",
-                            linkedDoctorId: "",
-                          }));
+                  {/* Selected specialization tag */}
+                  {selectedSpecialization && (
+                    <div className="flex items-center gap-2 bg-blue-50 border border-blue-200 rounded-lg px-3 py-2">
+                      <span className="text-sm text-blue-700 font-medium">
+                        {selectedSpecialization.name}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSelectedSpecialization(null);
+                          setSpecializationSearch("");
+                          setForm((p) => ({ ...p, specialization_id: "" }));
                         }}
-                        onFocus={() => setShowDoctorList(true)}
-                        placeholder="Search for a doctor..."
-                        className="w-full px-3 py-2.5 text-sm border border-[#E5E5E5] rounded-lg outline-none focus:border-[#0066CC]"
-                      />
-
-                      {/* Selected Doctor Tag */}
-                      {form.linkedDoctor && (
-                        <div className="mt-2 flex items-center gap-2 bg-blue-50 border border-blue-200 rounded-lg px-3 py-2">
-                          <span className="text-sm text-blue-700 font-medium">
-                            {form.linkedDoctor}
-                          </span>
-                          <button
-                            onClick={() => {
-                              setForm((p) => ({
-                                ...p,
-                                linkedDoctor: "",
-                                linkedDoctorId: "",
-                              }));
-                              setDoctorSearch("");
-                            }}
-                            className="ml-auto"
-                          >
-                            <X size={14} className="text-blue-500" />
-                          </button>
-                        </div>
-                      )}
-
-                      {/* Dropdown List */}
-                      {showDoctorList && doctorSearch && !form.linkedDoctor && (
-                        <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-[#E5E5E5] rounded-lg shadow-lg z-10 overflow-hidden">
-                          {DOCTORS.filter(
-                            (d) =>
-                              d.name
-                                .toLowerCase()
-                                .includes(doctorSearch.toLowerCase()) ||
-                              d.specialty
-                                .toLowerCase()
-                                .includes(doctorSearch.toLowerCase()),
-                          ).length === 0 ? (
-                            <div className="px-4 py-3 text-sm text-slate-400">
-                              No doctors found
-                            </div>
-                          ) : (
-                            DOCTORS.filter(
-                              (d) =>
-                                d.name
-                                  .toLowerCase()
-                                  .includes(doctorSearch.toLowerCase()) ||
-                                d.specialty
-                                  .toLowerCase()
-                                  .includes(doctorSearch.toLowerCase()),
-                            ).map((doc) => (
-                              <button
-                                key={doc.id}
-                                onClick={() => {
-                                  setForm((p) => ({
-                                    ...p,
-                                    linkedDoctor: doc.name,
-                                    linkedDoctorId: doc.id,
-                                  }));
-                                  setDoctorSearch(doc.name);
-                                  setShowDoctorList(false);
-                                }}
-                                className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-slate-50 transition-colors text-left"
-                              >
-                                <div className="w-7 h-7 rounded-full bg-blue-100 flex items-center justify-center shrink-0">
-                                  <span className="text-xs font-semibold text-blue-600">
-                                    {doc.name.charAt(3)}
-                                  </span>
-                                </div>
-                                <div>
-                                  <p className="text-sm font-medium text-slate-900">
-                                    {doc.name}
-                                  </p>
-                                  <p className="text-xs text-slate-400">
-                                    {doc.specialty}
-                                  </p>
-                                </div>
-                              </button>
-                            ))
-                          )}
-                        </div>
-                      )}
+                        className="ml-auto"
+                      >
+                        <X size={14} className="text-blue-500" />
+                      </button>
                     </div>
-                  </div>
-                </div>
-              )}
-              {selectedRole === "Admin" && (
-                <div className="space-y-4">
-                  <h3 className="text-sm font-semibold text-slate-900">
-                    Admin Information
-                  </h3>
-                  <div className="space-y-1.5">
-                    <label className="text-sm font-medium text-slate-700">
-                      Admin Level <span className="text-red-500">*</span>
-                    </label>
-                    <input
-                      value={form.adminLevel}
-                      onChange={(e) =>
-                        setForm((p) => ({ ...p, adminLevel: e.target.value }))
-                      }
-                      placeholder="Admin or Super Admin"
-                      className="w-full px-3 py-2.5 text-sm border border-[#E5E5E5] rounded-lg outline-none focus:border-[#0066CC]"
-                    />
-                    <p className="text-xs text-slate-400">
-                      Super Admins can manage other admins
+                  )}
+
+                  {errors.specialization_id && (
+                    <p className="text-xs text-red-500">
+                      {errors.specialization_id}
                     </p>
-                  </div>
+                  )}
                 </div>
-              )}
-            </div>
-          )}
-        </div>
+
+                {/* Certificate upload */}
+                <div className="space-y-1.5">
+                  <label className="text-sm font-medium text-slate-700">
+                    Medical Certificate <span className="text-red-500">*</span>
+                  </label>
+
+                  {certificatePreview ? (
+                    <div className="flex items-center justify-between p-3 border border-[#E5E5E5] rounded-lg bg-slate-50">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 bg-red-50 rounded-lg flex items-center justify-center shrink-0">
+                          <span className="text-[10px] font-bold text-red-500">
+                            {certificatePreview.ext.toUpperCase()}
+                          </span>
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium text-slate-900 truncate max-w-[200px]">
+                            {certificatePreview.name}
+                          </p>
+                          <p className="text-xs text-slate-400">
+                            {certificatePreview.size}
+                          </p>
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setCertificatePreview(null);
+                          setForm((p) => ({ ...p, certificate: null }));
+                        }}
+                        className="p-1 hover:bg-slate-200 rounded-lg transition-colors"
+                      >
+                        <X size={14} className="text-slate-500" />
+                      </button>
+                    </div>
+                  ) : (
+                    <label className="flex flex-col items-center justify-center gap-2 border-2 border-dashed border-[#E5E5E5] rounded-lg h-28 cursor-pointer hover:border-[#0066CC] transition-colors group">
+                      <Upload
+                        size={20}
+                        className="text-slate-300 group-hover:text-[#0066CC] transition-colors"
+                      />
+                      <span className="text-sm text-slate-400 group-hover:text-slate-600 transition-colors">
+                        Drop file here or click to browse
+                      </span>
+                      <span className="text-xs text-slate-300">
+                        PDF, JPG, PNG (Max 10MB)
+                      </span>
+                      <input
+                        type="file"
+                        accept=".pdf,.jpg,.jpeg,.png"
+                        className="hidden"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (!file) return;
+                          const sizeMB = (file.size / 1024 / 1024).toFixed(1);
+                          const ext = file.name.split(".").pop() || "file";
+                          setCertificatePreview({
+                            name: file.name,
+                            size: `${sizeMB} MB`,
+                            ext,
+                          });
+                          setForm((p) => ({ ...p, certificate: file }));
+                          setErrors((p) => ({ ...p, certificate: "" }));
+                        }}
+                      />
+                    </label>
+                  )}
+                  {errors.certificate && (
+                    <p className="text-xs text-red-500">{errors.certificate}</p>
+                  )}
+                </div>
+              </section>
+            )}
+
+            {/* Admin Section  */}
+            {selectedRole === "Admin" && (
+              <section className="space-y-4">
+                <h3 className="text-sm font-semibold text-slate-900">
+                  Admin Information
+                </h3>
+
+                <div className="space-y-1.5">
+                  <label className="text-sm font-medium text-slate-700">
+                    Admin Level <span className="text-red-500">*</span>
+                  </label>
+                  <select
+                    value={form.admin_level}
+                    onChange={handleChange("admin_level")}
+                    className={`w-full px-3 py-2.5 text-sm border rounded-lg outline-none bg-white transition-colors ${
+                      errors.admin_level
+                        ? "border-red-400"
+                        : "border-[#E5E5E5] focus:border-[#0066CC]"
+                    }`}
+                  >
+                    {ADMIN_LEVELS.map((opt) => (
+                      <option key={opt.value} value={opt.value}>
+                        {opt.label}
+                      </option>
+                    ))}
+                  </select>
+                  {errors.admin_level && (
+                    <p className="text-xs text-red-500">{errors.admin_level}</p>
+                  )}
+                  <p className="text-xs text-slate-400">
+                    Super Admins can create and manage other admins.
+                  </p>
+                </div>
+              </section>
+            )}
+          </div>
+        )}
 
         {/* Footer */}
         {step === 2 && (
           <div className="flex items-center justify-between px-5 py-4 border-t border-[#E5E5E5]">
             <button
-              onClick={() => setStep(1)}
-              className="px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 rounded-lg"
+              onClick={resetToStep1}
+              className="px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50 rounded-lg transition-colors"
             >
-              Back
+              ← Back
             </button>
             <div className="flex items-center gap-3">
               <button
                 onClick={onClose}
-                className="px-4 py-2 text-sm font-medium text-slate-700 border border-[#E5E5E5] rounded-lg hover:bg-slate-50"
+                className="px-4 py-2 text-sm font-medium text-slate-700 border border-[#E5E5E5] rounded-lg hover:bg-slate-50 transition-colors"
               >
                 Cancel
               </button>
               <button
                 onClick={handleCreate}
-                className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-[#0066CC] rounded-lg hover:bg-[#0052a3]"
+                disabled={loading}
+                className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-[#0066CC] rounded-lg hover:bg-[#0052a3] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
-                Create User
+                {loading ? (
+                  <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                ) : (
+                  `Create ${selectedRole}`
+                )}
               </button>
             </div>
           </div>

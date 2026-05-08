@@ -1,29 +1,55 @@
 import { useState } from "react";
 import { X, Info } from "lucide-react";
-import { toast } from "sonner";
 
-export default function EditUserModal({ user, onClose, onSave }) {
+const STATUS_OPTIONS = [
+  { label: "Active", value: "active" },
+  { label: "Pending", value: "pending" },
+  { label: "Suspended", value: "suspended" },
+  { label: "Blocked", value: "blocked" },
+];
+
+export default function EditUserModal({
+  user,
+  onClose,
+  onSave,
+  loading = false,
+}) {
+  const role = user.role?.toLowerCase();
+
   const [form, setForm] = useState({
-    name: user.name,
-    email: user.email,
-    phone: user.phone,
+    // Basic
+    first_name: user.name?.split(" ")[0] || "",
+    last_name: user.name?.split(" ").slice(1).join(" ") || "",
+    email: user.email || "",
+    phone: user.phone || "",
+    status: user.status?.toLowerCase() || "active",
+    // Doctor extras
     specialty: user.specialty || "",
     licenseNumber: user.licenseNumber || "",
-    linkedDoctor: user.linkedDoctor || "",
+    // Admin extras
     adminLevel: user.adminLevel || "",
-    status: user.status,
+    // linkedDoctor: user.linkedDoctor || "",
   });
 
+  const set = (key) => (e) =>
+    setForm((prev) => ({ ...prev, [key]: e.target.value }));
+
   const handleSave = () => {
-    if (!form.name.trim()) return toast.error("Name is required");
-    onSave({ ...user, ...form });
-    toast.success("User updated successfully!");
-    onClose();
+    const payload = {
+      first_name: form.first_name,
+      last_name: form.last_name,
+      email: form.email,
+      phone: form.phone,
+      status: form.status,
+      // Only send specialty if it's a doctor
+      ...(role === "doctor" && form.specialty && { specialty: form.specialty }),
+    };
+    onSave({ id: user.id, data: payload });
   };
 
   return (
     <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-[10px] w-full max-w-lg max-h-[90vh] overflow-y-auto">
+      <div className="bg-white rounded-[10px] w-full max-w-lg max-h-[90vh] overflow-y-auto shadow-xl">
         {/* Header */}
         <div className="flex items-center justify-between p-5 border-b border-[#E5E5E5]">
           <div>
@@ -34,30 +60,41 @@ export default function EditUserModal({ user, onClose, onSave }) {
           </div>
           <button
             onClick={onClose}
-            className="text-slate-400 hover:text-slate-600"
+            className="text-slate-400 hover:text-slate-600 transition-colors"
           >
             <X size={18} />
           </button>
         </div>
 
+        {/* Body */}
         <div className="p-5 space-y-5">
-          {/* Basic Info */}
-          <div className="space-y-4">
+          {/* ── Basic Info ── */}
+          <section className="space-y-4">
             <h3 className="text-sm font-semibold text-slate-900">
               Basic Information
             </h3>
 
-            <div className="space-y-1.5">
-              <label className="text-sm font-medium text-slate-700">
-                Full Name <span className="text-red-500">*</span>
-              </label>
-              <input
-                value={form.name}
-                onChange={(e) =>
-                  setForm((p) => ({ ...p, name: e.target.value }))
-                }
-                className="w-full px-3 py-2.5 text-sm border border-[#E5E5E5] rounded-lg outline-none focus:border-[#0066CC]"
-              />
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium text-slate-700">
+                  First Name <span className="text-red-500">*</span>
+                </label>
+                <input
+                  value={form.first_name}
+                  onChange={set("first_name")}
+                  className="w-full px-3 py-2.5 text-sm border border-[#E5E5E5] rounded-lg outline-none focus:border-[#0066CC] transition-colors"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium text-slate-700">
+                  Last Name
+                </label>
+                <input
+                  value={form.last_name}
+                  onChange={set("last_name")}
+                  className="w-full px-3 py-2.5 text-sm border border-[#E5E5E5] rounded-lg outline-none focus:border-[#0066CC] transition-colors"
+                />
+              </div>
             </div>
 
             <div className="space-y-1.5">
@@ -66,23 +103,19 @@ export default function EditUserModal({ user, onClose, onSave }) {
               </label>
               <input
                 value={form.email}
-                onChange={(e) =>
-                  setForm((p) => ({ ...p, email: e.target.value }))
-                }
-                className="w-full px-3 py-2.5 text-sm border border-[#E5E5E5] rounded-lg outline-none focus:border-[#0066CC]"
+                onChange={set("email")}
+                className="w-full px-3 py-2.5 text-sm border border-[#E5E5E5] rounded-lg outline-none focus:border-[#0066CC] transition-colors"
               />
             </div>
 
             <div className="space-y-1.5">
               <label className="text-sm font-medium text-slate-700">
-                Phone <span className="text-red-500">*</span>
+                Phone
               </label>
               <input
                 value={form.phone}
-                onChange={(e) =>
-                  setForm((p) => ({ ...p, phone: e.target.value }))
-                }
-                className="w-full px-3 py-2.5 text-sm border border-[#E5E5E5] rounded-lg outline-none focus:border-[#0066CC]"
+                onChange={set("phone")}
+                className="w-full px-3 py-2.5 text-sm border border-[#E5E5E5] rounded-lg outline-none focus:border-[#0066CC] transition-colors"
               />
             </div>
 
@@ -92,77 +125,97 @@ export default function EditUserModal({ user, onClose, onSave }) {
               </label>
               <select
                 value={form.status}
-                onChange={(e) =>
-                  setForm((p) => ({ ...p, status: e.target.value }))
-                }
-                className="w-full px-3 py-2.5 text-sm border border-[#E5E5E5] rounded-lg outline-none focus:border-[#0066CC]"
+                onChange={set("status")}
+                className="w-full px-3 py-2.5 text-sm border border-[#E5E5E5] rounded-lg outline-none focus:border-[#0066CC] bg-white transition-colors"
               >
-                <option>Active</option>
-                <option>Pending</option>
-                <option>Suspended</option>
+                {STATUS_OPTIONS.map((opt) => (
+                  <option key={opt.value} value={opt.value}>
+                    {opt.label}
+                  </option>
+                ))}
               </select>
             </div>
-          </div>
+          </section>
 
-          {/* Role Specific */}
-          {user.role === "Doctor" && (
-            <div className="space-y-4">
+          {/* ── Doctor-specific ── */}
+          {role === "doctor" && (
+            <section className="space-y-4">
               <h3 className="text-sm font-semibold text-slate-900">
                 Doctor Information
               </h3>
+
               <div className="space-y-1.5">
                 <label className="text-sm font-medium text-slate-700">
                   Specialty
                 </label>
                 <input
                   value={form.specialty}
-                  onChange={(e) =>
-                    setForm((p) => ({ ...p, specialty: e.target.value }))
-                  }
-                  className="w-full px-3 py-2.5 text-sm border border-[#E5E5E5] rounded-lg outline-none focus:border-[#0066CC]"
+                  onChange={set("specialty")}
+                  placeholder="e.g. Cardiology"
+                  className="w-full px-3 py-2.5 text-sm border border-[#E5E5E5] rounded-lg outline-none focus:border-[#0066CC] transition-colors"
                 />
               </div>
+
+              {/*
               <div className="space-y-1.5">
-                <label className="text-sm font-medium text-slate-700">
-                  License Number
-                </label>
+                <label className="text-sm font-medium text-slate-700">License Number</label>
                 <input
                   value={form.licenseNumber}
-                  onChange={(e) =>
-                    setForm((p) => ({ ...p, licenseNumber: e.target.value }))
-                  }
+                  onChange={set("licenseNumber")}
+                  placeholder="Enter license number"
                   className="w-full px-3 py-2.5 text-sm border border-[#E5E5E5] rounded-lg outline-none focus:border-[#0066CC]"
                 />
               </div>
-            </div>
+              */}
+            </section>
           )}
 
-          {user.role === "Assistant" && (
-            <div className="space-y-4">
+          {/* ── Admin-specific ── */}
+          {(role === "admin" || role === "super admin") && (
+            <section className="space-y-4">
               <h3 className="text-sm font-semibold text-slate-900">
-                Assistant Information
+                Admin Information
               </h3>
               <div className="space-y-1.5">
                 <label className="text-sm font-medium text-slate-700">
-                  Linked Doctor
+                  Admin Level
                 </label>
+
+                <input
+                  value={form.adminLevel}
+                  onChange={set("adminLevel")}
+                  placeholder="admin / super admin"
+                  disabled
+                  className="w-full px-3 py-2.5 text-sm border border-[#E5E5E5] rounded-lg outline-none bg-slate-50 text-slate-400 cursor-not-allowed"
+                />
+                <p className="text-xs text-slate-400">
+                  Admin level cannot be changed after creation.
+                </p>
+              </div>
+            </section>
+          )}
+          {/*
+          {role === "assistant" && (
+            <section className="space-y-4">
+              <h3 className="text-sm font-semibold text-slate-900">Assistant Information</h3>
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium text-slate-700">Linked Doctor</label>
                 <input
                   value={form.linkedDoctor}
-                  onChange={(e) =>
-                    setForm((p) => ({ ...p, linkedDoctor: e.target.value }))
-                  }
+                  onChange={set("linkedDoctor")}
                   className="w-full px-3 py-2.5 text-sm border border-[#E5E5E5] rounded-lg outline-none focus:border-[#0066CC]"
                 />
               </div>
-            </div>
+            </section>
           )}
+          */}
 
           {/* Note */}
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 flex gap-2">
-            <Info size={16} className="text-blue-500 shrink-0" />
+            <Info size={15} className="text-blue-500 shrink-0 mt-0.5" />
             <p className="text-xs text-blue-700">
-              User role cannot be changed after account creation. To reset
-              password or manage permissions, use the respective action buttons.
+              User role cannot be changed after account creation. To manage
+              permissions use the Roles &amp; Permissions section.
             </p>
           </div>
         </div>
@@ -171,15 +224,20 @@ export default function EditUserModal({ user, onClose, onSave }) {
         <div className="flex items-center justify-end gap-3 px-5 py-4 border-t border-[#E5E5E5]">
           <button
             onClick={onClose}
-            className="px-4 py-2 text-sm font-medium text-slate-700 border border-[#E5E5E5] rounded-lg hover:bg-slate-50"
+            className="px-4 py-2 text-sm font-medium text-slate-700 border border-[#E5E5E5] rounded-lg hover:bg-slate-50 transition-colors"
           >
             Cancel
           </button>
           <button
             onClick={handleSave}
-            className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-[#0066CC] rounded-lg hover:bg-[#0052a3]"
+            disabled={loading}
+            className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-[#0066CC] rounded-lg hover:bg-[#0052a3] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
-            Save Changes
+            {loading ? (
+              <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+            ) : (
+              "Save Changes"
+            )}
           </button>
         </div>
       </div>

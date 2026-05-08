@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
+import { useQueryClient } from "@tanstack/react-query";
 import {
   ArrowLeft,
   Mail,
@@ -76,17 +77,23 @@ export default function DoctorVerificationDetailsPage() {
       </div>
     );
   }
+const currentStatus = (localStatus ?? rawDoctor?.status ?? "")
+  .toLowerCase()
+  .trim();
 
-  const currentStatus = localStatus ?? doctor.status;
-  const isActionAllowed = currentStatus?.toLowerCase() !== "approved";
+const isPending = currentStatus === "pending";
+const isRejected = currentStatus === "rejected";
+const isApproved = currentStatus === "approved";
 
-  const handleApprove = () => {
-    approveMutation.mutate(id, {
-      onSuccess: () => {
-        setLocalStatus("approved");
-      },
-    });
-  };
+  const queryClient = useQueryClient();
+
+const handleApprove = () => {
+  approveMutation.mutate(id, {
+    onSuccess: () => {
+      setLocalStatus("approved");
+      queryClient.invalidateQueries(["doctor", id]);     },
+  });
+};
 
   const handleReject = (reason) => {
     rejectMutation.mutate(
@@ -94,6 +101,7 @@ export default function DoctorVerificationDetailsPage() {
       {
         onSuccess: () => {
           setLocalStatus("rejected");
+           queryClient.invalidateQueries(["doctor", id]);
           setShowRejectModal(false);
         },
       },
@@ -121,32 +129,58 @@ export default function DoctorVerificationDetailsPage() {
           </div>
         </div>
 
-        {/* Action Buttons */}
-        {isActionAllowed && (
-          <div className="flex items-center gap-3">
-            <button
-              onClick={() => setShowRejectModal(true)}
-              className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-red-600 border border-red-200 rounded-lg hover:bg-red-50 transition-colors"
-            >
-              <X size={16} />
-              Reject
-            </button>
+{/* Action Buttons */}
 
-            <button
-              onClick={handleApprove}
-              disabled={approveMutation.isPending}
-              className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-green-600 rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50"
-            >
-              <CheckCircle size={16} />
-              {approveMutation.isPending ? "Approving..." : "Approve"}
-            </button>
-          </div>
-        )}
+{isPending && (
+  <div className="flex items-center gap-3">
+    <button
+      onClick={() => setShowRejectModal(true)}
+      className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-red-600 border border-red-200 rounded-lg hover:bg-red-50"
+    >
+      <X size={16} />
+      Reject
+    </button>
 
-        {/* {currentStatus !== "pending" &&
-          currentStatus !== "Pending" && (
-            <StatusBadge status={currentStatus} />
-          )} */}
+    <button
+      onClick={handleApprove}
+      disabled={approveMutation.isPending}
+      className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-green-600 rounded-lg hover:bg-green-700"
+    >
+      <CheckCircle size={16} />
+      {approveMutation.isPending ? "Approving..." : "Approve"}
+    </button>
+  </div>
+)}
+
+{isRejected && (
+  <div className="flex items-center gap-3">
+    <button
+      onClick={handleApprove}
+      className="px-4 py-2 text-white bg-green-600 rounded-lg hover:bg-green-700"
+    >
+      Re-evaluate
+    </button>
+  </div>
+)}
+
+{isApproved && (
+  <div className="flex items-center gap-3">
+    <button
+      onClick={() => {
+        rejectMutation.mutate(
+          { id, reason: "revoked" },
+          {
+            onSuccess: () => setLocalStatus("rejected"),
+          }
+        );
+      }}
+      className="px-4 py-2 text-red-600 border border-red-200 rounded-lg hover:bg-red-50"
+    >
+      Revoke approval
+    </button>
+  </div>
+)}
+
       </div>
 
       {/* Content Grid */}

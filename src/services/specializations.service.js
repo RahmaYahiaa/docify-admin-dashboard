@@ -1,8 +1,16 @@
-import api from './api'
+import axios from "axios";
+import { useAuthStore } from "@/store/authStore";
 
-// Endpoint: GET /doctor/v1/specializations
-export const getSpecializations = (params = {}) =>
-  api.get('/specializations', { params })
+// The specializations endpoint lives under doctor/v1, not admin/v1
+const doctorApi = axios.create({
+  baseURL: `${import.meta.env.VITE_SPECIALIZATION_BASE_URL}`,
+  headers: { Accept: "application/json" },
+});
 
-// export const getSpecializations = (params = {}) =>
-//   api.get('/api/doctor/v1/specializations', { params })
+doctorApi.interceptors.request.use((config) => {
+  const token = useAuthStore.getState().token;
+  if (token) config.headers.Authorization = `Bearer ${token}`;
+  return config;
+});
+
+export const getSpecializations = () => doctorApi.get("/specializations");

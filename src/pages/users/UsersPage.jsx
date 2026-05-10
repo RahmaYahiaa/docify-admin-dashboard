@@ -4,6 +4,7 @@ import {
   Plus,
   Eye,
   Edit,
+  RefreshCw,
   Ban,
   CheckCircle,
   ChevronLeft,
@@ -17,6 +18,7 @@ import UserDetailsModal from "./components/UserDetailsModal";
 import EditUserModal from "./components/EditUserModal";
 import SuspendModal from "./components/SuspendModal";
 import ActivateModal from "./components/ActivateModal";
+// import ResetPasswordModal from './components/ResetPasswordModal'
 import AddUserModal from "./components/AddUserModal";
 import { Users, UserCheck, Clock, Ban as BanIcon } from "lucide-react";
 import {
@@ -30,11 +32,11 @@ import {
 } from "@/hooks/useUsers";
 
 const TABS = [
-  { label: "All", value: "", countKey: "total" },
-  { label: "Doctors", value: "doctor", countKey: "doctors_count" },
-  { label: "Patients", value: "patient", countKey: "patients_count" },
-  { label: "Assistants", value: "assistant", countKey: "assistants_count" },
-  { label: "Admins", value: "admin", countKey: "admins_count" },
+  { label: "All", value: "" },
+  { label: "Doctors", value: "doctor" },
+  { label: "Patients", value: "patient" },
+  { label: "Assistants", value: "assistant" },
+  { label: "Admins", value: "admin" },
 ];
 
 export default function UsersPage() {
@@ -45,79 +47,91 @@ export default function UsersPage() {
   const [editUser, setEditUser] = useState(null);
   const [suspendUser, setSuspendUser] = useState(null);
   const [activateUser, setActivateUser] = useState(null);
+  // const [resetUser,    setResetUser]    = useState(null)
   const [showAddModal, setShowAddModal] = useState(false);
 
-  const { data, isLoading, isError } = useUsers({
+  // Build query params — backend UserManagementController allowedFilters:
+  //   AllowedFilter::partial('first_name', 'first_name')
+  //   AllowedFilter::partial('email', 'email')
+  //   AllowedFilter::partial('phone', 'phone')
+  //   AllowedFilter::callback('role', ...)
+  //   AllowedFilter::callback('status', ...)
+  const queryParams = {
+    page,
     ...(search && { "filter[first_name]": search }),
     ...(activeTab && { "filter[role]": activeTab }),
-    page,
-  });
+  };
+
+  const { data, isLoading, isError } = useUsers(queryParams);
 
   const { data: reasons } = useUserReasons();
   const { mutate: suspend, isPending: suspending } = useSuspendUser();
   const { mutate: activate, isPending: activating } = useActivateUser();
-  const { mutate: createDoctor, isPending: creatingDoc } = useCreateDoctor();
-  const { mutate: createAdmin, isPending: creatingAdm } = useCreateAdmin();
-  const { mutate: updateUser, isPending: updating } = useUpdateUser();
+  const { mutate: createDoctor, isPending: creatingDoctor } = useCreateDoctor();
+  const { mutate: createAdmin, isPending: creatingAdmin } = useCreateAdmin();
+  const { mutate: update, isPending: updating } = useUpdateUser();
 
+  // UserDetailsCollection shape:
   const users = data?.data || [];
   const stats = data?.stats || {};
   const meta = data?.meta || {};
+
   const suspendReasons = reasons?.suspend_reasons || [];
   const activateReasons = reasons?.activate_reasons || [];
 
-  const handleSuspend = (reason) =>
+  //  Suspend / Activate
+  const handleSuspend = (reason) => {
     suspend(
       { id: suspendUser.id, reason },
       { onSuccess: () => setSuspendUser(null) },
     );
+  };
 
-  const handleActivate = (reason) =>
+  const handleActivate = (reason) => {
     activate(
       { id: activateUser.id, reason },
       { onSuccess: () => setActivateUser(null) },
     );
+  };
 
-  const handleSaveEdit = ({ id, data }) =>
-    updateUser({ id, data }, { onSuccess: () => setEditUser(null) });
+  //  Update user
+  // EditUserModal calls: onSave(userId, payload)
+  const handleSaveEdit = (userId, payload) => {
+    update(
+      { id: userId, data: payload },
+      { onSuccess: () => setEditUser(null) },
+    );
+  };
 
+  //  Add user
+  // AddUserModal only shows Doctor and Admin options.
+  // Doctor fields: first_name, last_name, email, phone, specialization_id, certificate (File)
+  // Admin fields:  first_name, last_name, email, phone, admin_level
   const handleAddUser = (newUser) => {
     if (newUser.role === "Doctor") {
       const formData = new FormData();
-      formData.append("first_name", newUser.first_name);
+      formData.append("first_name", newUser.first_name || "");
       formData.append("last_name", newUser.last_name || "");
-      formData.append("email", newUser.email);
+      formData.append("email", newUser.email || "");
       formData.append("phone", newUser.phone || "");
-      formData.append("specialization_id", newUser.specialization_id);
-      if (newUser.certificate)
+      formData.append("specialization_id", newUser.specialization_id || "");
+      if (newUser.certificate instanceof File) {
         formData.append("certificate", newUser.certificate);
+      }
       createDoctor(formData, { onSuccess: () => setShowAddModal(false) });
     } else if (newUser.role === "Admin") {
       createAdmin(
         {
-          first_name: newUser.first_name,
+          first_name: newUser.first_name || "",
           last_name: newUser.last_name || "",
-          email: newUser.email,
+          email: newUser.email || "",
           phone: newUser.phone || "",
-          admin_level: newUser.admin_level, // "admin" | "super admin"
+          admin_level: newUser.admin_level || "admin",
         },
         { onSuccess: () => setShowAddModal(false) },
       );
     }
   };
-
-  const mapToModalUser = (row) => ({
-    id: row.id,
-    name: row.user?.name,
-    email: row.contact?.email,
-    phone: row.contact?.phone,
-    role: row.role,
-    status: row.status,
-    specialty: row.user?.specialty,
-    lastLogin: row.last_login,
-    accountCreated: row.created_at,
-    createdBy: row.created_by,
-  });
 
   return (
     <div className="space-y-6">
@@ -163,7 +177,7 @@ export default function UsersPage() {
         />
       </div>
 
-      {/* Table Card */}
+      {/* Table card */}
       <div className="bg-white rounded-[10px] border border-[#E5E5E5]">
         {/* Search */}
         <div className="p-4 border-b border-[#E5E5E5]">
@@ -187,7 +201,7 @@ export default function UsersPage() {
 
         {/* Tabs */}
         <div className="px-4 border-b border-[#E5E5E5]">
-          <div className="flex gap-6 overflow-x-auto">
+          <div className="flex gap-6">
             {TABS.map((tab) => (
               <button
                 key={tab.value}
@@ -195,7 +209,7 @@ export default function UsersPage() {
                   setActiveTab(tab.value);
                   setPage(1);
                 }}
-                className={`py-3 text-sm font-medium border-b-2 whitespace-nowrap transition-colors ${
+                className={`py-3 text-sm font-medium border-b-2 transition-colors ${
                   activeTab === tab.value
                     ? "border-[#0066CC] text-[#0066CC]"
                     : "border-transparent text-slate-500 hover:text-slate-700"
@@ -209,7 +223,11 @@ export default function UsersPage() {
                       : "bg-slate-100 text-slate-500"
                   }`}
                 >
-                  {stats[tab.countKey] ?? 0}
+                  {tab.value === "" && (stats.total ?? 0)}
+                  {tab.value === "doctor" && (stats.doctors_count ?? 0)}
+                  {tab.value === "patient" && (stats.patients_count ?? 0)}
+                  {tab.value === "assistant" && (stats.assistants_count ?? 0)}
+                  {tab.value === "admin" && (stats.admins_count ?? 0)}
                 </span>
               </button>
             ))}
@@ -222,7 +240,7 @@ export default function UsersPage() {
             {[...Array(6)].map((_, i) => (
               <div
                 key={i}
-                className="h-14 bg-slate-50 rounded-lg animate-pulse"
+                className="h-16 bg-slate-50 rounded-lg animate-pulse"
               />
             ))}
           </div>
@@ -262,58 +280,69 @@ export default function UsersPage() {
                   </td>
                 </tr>
               ) : (
-                users.map((row) => (
+                users.map((user) => (
                   <tr
-                    key={row.id}
+                    key={user.id}
                     className="border-b border-[#E5E5E5] last:border-0 hover:bg-slate-50 transition-colors"
                   >
                     <td className="px-4 py-4">
                       <p className="text-sm font-medium text-slate-900">
-                        {row.user?.name}
+                        {user.user?.name}
                       </p>
-                      {row.user?.specialty && (
+                      {user.user?.specialty && (
                         <p className="text-xs text-slate-400 mt-0.5">
-                          {row.user.specialty}
+                          {user.user.specialty}
                         </p>
                       )}
                     </td>
+
                     <td className="px-4 py-4">
                       <p className="text-sm text-slate-600">
-                        {row.contact?.email}
+                        {user.contact?.email}
                       </p>
                       <p className="text-xs text-slate-400">
-                        {row.contact?.phone || "—"}
+                        {user.contact?.phone || "—"}
                       </p>
                     </td>
+
                     <td className="px-4 py-4">
-                      <RoleBadge role={row.role} />
+                      <RoleBadge role={user.role} />
                     </td>
+
                     <td className="px-4 py-4">
-                      <StatusBadge status={row.status} />
+                      <StatusBadge status={user.status} />
                     </td>
+
                     <td className="px-4 py-4 text-sm text-slate-600">
-                      {row.last_login}
+                      {user.last_login}
                     </td>
+
                     <td className="px-4 py-4">
-                      <div className="flex items-center gap-1">
+                      <div className="flex items-center gap-2">
                         <button
-                          onClick={() => setViewUser(row)}
+                          onClick={() => setViewUser(user)}
                           className="p-1.5 text-slate-400 hover:text-[#0066CC] hover:bg-blue-50 rounded-lg transition-colors"
                           title="View Details"
                         >
                           <Eye size={15} />
                         </button>
                         <button
-                          onClick={() => setEditUser(row)}
+                          onClick={() => setEditUser(user)}
                           className="p-1.5 text-slate-400 hover:text-[#0066CC] hover:bg-blue-50 rounded-lg transition-colors"
                           title="Edit User"
                         >
                           <Edit size={15} />
                         </button>
-                        {/* Reset password icon removed — credentials are sent via email on creation */}
-                        {row.status === "suspended" ? (
+                        {/* <button
+                        onClick={() => setResetUser(user)}
+                        className="p-1.5 text-slate-400 hover:text-orange-500 hover:bg-orange-50 rounded-lg transition-colors"
+                        title="Reset Password"
+                      >
+                        <RefreshCw size={15} />
+                      </button> */}
+                        {user.status === "suspended" ? (
                           <button
-                            onClick={() => setActivateUser(row)}
+                            onClick={() => setActivateUser(user)}
                             className="p-1.5 text-slate-400 hover:text-green-600 hover:bg-green-50 rounded-lg transition-colors"
                             title="Activate Account"
                           >
@@ -321,7 +350,7 @@ export default function UsersPage() {
                           </button>
                         ) : (
                           <button
-                            onClick={() => setSuspendUser(row)}
+                            onClick={() => setSuspendUser(user)}
                             className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
                             title="Suspend Account"
                           >
@@ -343,25 +372,27 @@ export default function UsersPage() {
             Showing {users.length} of {meta.total || 0} users
           </span>
           <div className="flex items-center gap-2">
-            <button
-              onClick={() => setPage((p) => p - 1)}
-              disabled={page === 1}
-              className="px-3 py-1.5 text-sm border border-[#E5E5E5] rounded-lg hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed"
-            >
-              <ChevronLeft size={18} />
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setPage((p) => p - 1)}
+                disabled={page === 1}
+                className="px-3 py-1.5 text-sm border border-[#E5E5E5] rounded-lg hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                <ChevronLeft size={18} />
+              </button>
 
-            <span className="text-sm text-slate-600 tabular-nums">
-              {page} / {meta.last_page || 1}
-            </span>
+              <span className="text-sm text-slate-600 tabular-nums">
+                {page} / {meta.last_page || 1}
+              </span>
 
-            <button
-              onClick={() => setPage((p) => p + 1)}
-              disabled={page === meta.last_page}
-              className="px-3 py-1.5 text-sm border border-[#E5E5E5] rounded-lg hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed"
-            >
-              <ChevronRight size={18} />
-            </button>
+              <button
+                onClick={() => setPage((p) => p + 1)}
+                disabled={page === meta.last_page}
+                className="px-3 py-1.5 text-sm border border-[#E5E5E5] rounded-lg hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                <ChevronRight size={18} />
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -370,7 +401,18 @@ export default function UsersPage() {
 
       {viewUser && (
         <UserDetailsModal
-          user={mapToModalUser(viewUser)}
+          user={{
+            id: viewUser.id,
+            name: viewUser.user?.name,
+            email: viewUser.contact?.email,
+            phone: viewUser.contact?.phone,
+            role: viewUser.role,
+            status: viewUser.status,
+            specialty: viewUser.user?.specialty,
+            lastLogin: viewUser.last_login,
+            accountCreated: viewUser.created_at,
+            createdBy: viewUser.created_by,
+          }}
           onClose={() => setViewUser(null)}
           onEdit={() => {
             setEditUser(viewUser);
@@ -381,7 +423,7 @@ export default function UsersPage() {
 
       {editUser && (
         <EditUserModal
-          user={mapToModalUser(editUser)}
+          user={editUser}
           onClose={() => setEditUser(null)}
           onSave={handleSaveEdit}
           loading={updating}
@@ -416,11 +458,19 @@ export default function UsersPage() {
         />
       )}
 
+      {/* {resetUser && (
+        <ResetPasswordModal
+          user={{ name: resetUser.user?.name, email: resetUser.contact?.email }}
+          onClose={() => setResetUser(null)}
+          onConfirm={() => setResetUser(null)}
+        />
+      )} */}
+
       {showAddModal && (
         <AddUserModal
           onClose={() => setShowAddModal(false)}
           onSave={handleAddUser}
-          loading={creatingDoc || creatingAdm}
+          loading={creatingDoctor || creatingAdmin}
         />
       )}
     </div>

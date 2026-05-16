@@ -52,35 +52,23 @@ export default function LoginPage() {
     setLoading(true);
     try {
       const res = await login(loginForm);
-      const { user, token } = res.data.data;
+      const responseData = res.data.data;
+      const token = responseData.token;
+
       loginStore(
         {
-          name: user.name || user.first_name + " " + (user.last_name || ""),
-          email: user.email,
-          role: user.role || "Admin",
+          name: responseData.first_name + " " + (responseData.last_name || ""),
+          email: responseData.email,
+          role: "Admin",
         },
         token,
       );
+
       navigate("/dashboard", { replace: true });
     } catch (err) {
+      console.error("Login Error Details:", err);
       setError(err.response?.data?.message || "Failed to login");
     }
-    setLoading(false);
-  };
-
-  const handleSendOtp = async () => {
-    setError("");
-    if (!resetEmail.trim()) return setError("Email is required");
-
-    setLoading(true);
-    try {
-      await sendOtp(resetEmail);
-      setOtpSent(true);
-      toast.success("OTP sent to your email!");
-    } catch (err) {
-      setError(err.response?.data?.message || "Failed to send OTP");
-    }
-    setLoading(false);
   };
 
   const handleResetPassword = async () => {

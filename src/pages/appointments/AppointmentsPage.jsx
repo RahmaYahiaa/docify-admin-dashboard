@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Search,
   Eye,
@@ -6,17 +6,25 @@ import {
   MapPin,
   ChevronLeft,
   ChevronRight,
+  Filter,
 } from "lucide-react";
 import PageHeader from "@/components/shared/PageHeader";
 import StatsCard from "@/components/shared/StatsCard";
-import AppointmentDetailsModal from "./components/AppointmentDetailsModal";
 import { useAppointments } from "@/hooks/useAppointments";
 import { formatAppointmentId, formatStatus } from "@/utils/formatters";
 import { Calendar, CheckCircle, UserX } from "lucide-react";
 
 const TABS = [
-  { label: "All", value: "" },
-  { label: "Upcoming", value: "confirmed" },
+  { label: "All", value: "", countKey: "all" },
+  { label: "Upcoming", value: "confirmed", countKey: "confirmed" },
+  { label: "Completed", value: "completed", countKey: "completed" },
+  { label: "Cancelled", value: "cancelled", countKey: "cancelled" },
+  { label: "No Show", value: "no_show", countKey: "no_show" },
+];
+
+const STATUS_OPTIONS = [
+  { label: "All Statuses", value: "" },
+  { label: "Confirmed / Upcoming", value: "confirmed" },
   { label: "Completed", value: "completed" },
   { label: "Cancelled", value: "cancelled" },
   { label: "No Show", value: "no_show" },
@@ -50,13 +58,28 @@ function StatusBadge({ status, styles }) {
 
 export default function AppointmentsPage() {
   const [search, setSearch] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
   const [activeTab, setActiveTab] = useState("");
+  const [typeFilter, setTypeFilter] = useState("");
+  const [showFilters, setShowFilters] = useState(false);
   const [page, setPage] = useState(1);
   const [viewAppointment, setViewAppointment] = useState(null);
 
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedSearch(search);
+      setPage(1);
+    }, 500);
+
+    return () => {
+      clearTimeout(handler);
+    };
+  }, [search]);
+
   const { data, isLoading, isError } = useAppointments({
-    ...(search && { "filter[search]": search }),
+    ...(debouncedSearch && { "filter[search]": debouncedSearch }),
     ...(activeTab && { "filter[status]": activeTab }),
+    ...(typeFilter && { "filter[type]": typeFilter }),
     page,
   });
 
@@ -101,9 +124,9 @@ export default function AppointmentsPage() {
 
       {/* Table Card */}
       <div className="bg-white rounded-[10px] border border-[#E5E5E5]">
-        {/* Search */}
-        <div className="p-4 border-b border-[#E5E5E5]">
-          <div className="relative">
+        {/* Top Bar: Search + Filters Button */}
+        <div className="p-4 border-b border-[#E5E5E5] flex items-center justify-between gap-4">
+          <div className="relative flex-1 max-w-md">
             <Search
               size={16}
               className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
@@ -112,14 +135,71 @@ export default function AppointmentsPage() {
               type="text"
               placeholder="Search by patient or doctor..."
               value={search}
-              onChange={(e) => {
-                setSearch(e.target.value);
-                setPage(1);
-              }}
+              onChange={(e) => setSearch(e.target.value)}
               className="w-full pl-9 pr-4 py-2 text-sm border border-[#E5E5E5] rounded-lg outline-none focus:border-[#0066CC] transition-colors"
             />
           </div>
+
+          <button
+            onClick={() => setShowFilters((prev) => !prev)}
+            className={`flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg border transition-colors ${
+              showFilters
+                ? "bg-[#0066CC] text-white border-[#0066CC]"
+                : "text-slate-700 border-[#E5E5E5] hover:bg-slate-50"
+            }`}
+          >
+            <Filter size={15} />
+            Filters
+          </button>
         </div>
+
+        {showFilters && (
+          <div className="p-4 bg-slate-50 border-b border-[#E5E5E5] flex flex-wrap gap-6">
+            <div className="flex flex-col gap-1.5 min-w-[180px]">
+              <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                Appointment Type
+              </label>
+              <div className="relative">
+                <select
+                  value={typeFilter}
+                  onChange={(e) => {
+                    setTypeFilter(e.target.value);
+                    setPage(1);
+                  }}
+                  className="w-full pl-3 pr-8 py-2 text-sm border border-[#E5E5E5] rounded-lg outline-none bg-white focus:border-[#0066CC] transition-colors appearance-none cursor-pointer text-slate-700 font-medium"
+                >
+                  <option value="">All Types</option>
+                  <option value="video">Video</option>
+                  <option value="in_person">In-person</option>
+                </select>
+                <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none border-l-4 border-r-4 border-t-4 border-transparent border-t-slate-500 w-0 h-0" />
+              </div>
+            </div>
+
+            <div className="flex flex-col gap-1.5 min-w-[180px]">
+              <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                Appointment Status
+              </label>
+              <div className="relative">
+                <select
+                  value={activeTab}
+                  onChange={(e) => {
+                    setActiveTab(e.target.value);
+                    setPage(1);
+                  }}
+                  className="w-full pl-3 pr-8 py-2 text-sm border border-[#E5E5E5] rounded-lg outline-none bg-white focus:border-[#0066CC] transition-colors appearance-none cursor-pointer text-slate-700 font-medium"
+                >
+                  {STATUS_OPTIONS.map((opt) => (
+                    <option key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </option>
+                  ))}
+                </select>
+                <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none border-l-4 border-r-4 border-t-4 border-transparent border-t-slate-500 w-0 h-0" />
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Tabs */}
         <div className="px-4 border-b border-[#E5E5E5]">
@@ -137,18 +217,18 @@ export default function AppointmentsPage() {
                     : "border-transparent text-slate-500 hover:text-slate-700"
                 }`}
               >
-                {tab.label}
-                {tab.value === "" && (
+                <div className="flex items-center gap-1.5">
+                  <span>{tab.label}</span>
                   <span
-                    className={`ml-1.5 text-xs px-1.5 py-0.5 rounded-full ${
+                    className={`text-xs px-1.5 py-0.5 rounded-full ${
                       activeTab === tab.value
                         ? "bg-blue-50 text-[#0066CC]"
                         : "bg-slate-100 text-slate-500"
                     }`}
                   >
-                    {stats.all ?? 0}
+                    {stats?.[tab.countKey] ?? 0}
                   </span>
-                )}
+                </div>
               </button>
             ))}
           </div>
@@ -171,7 +251,6 @@ export default function AppointmentsPage() {
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full min-w-[900px]">
-              {/* THEAD */}
               <thead>
                 <tr className="border-b border-[#E5E5E5]">
                   {[
@@ -193,27 +272,20 @@ export default function AppointmentsPage() {
                   ))}
                 </tr>
               </thead>
-
-              {/* TBODY */}
               <tbody>
                 {appointments.map((apt) => (
                   <tr
                     key={apt.appointment_id}
                     className="border-b border-[#E5E5E5] last:border-0 hover:bg-slate-50 transition-colors"
                   >
-                    {/* Appointment ID */}
                     <td className="px-4 py-4 text-xs font-mono text-slate-600 whitespace-nowrap">
                       {formatAppointmentId(apt.appointment_id)}
                     </td>
-
-                    {/* Patient */}
                     <td className="px-4 py-4">
                       <p className="text-sm font-medium text-slate-900">
                         {apt.patient}
                       </p>
                     </td>
-
-                    {/* Doctor */}
                     <td className="px-4 py-4">
                       <p className="text-sm font-medium text-slate-900">
                         {apt.doctor}
@@ -222,14 +294,10 @@ export default function AppointmentsPage() {
                         {apt.specialty || "—"}
                       </p>
                     </td>
-
-                    {/* Date & Time */}
                     <td className="px-4 py-4 whitespace-nowrap">
                       <p className="text-sm text-slate-900">{apt.date}</p>
                       <p className="text-xs text-slate-400">{apt.time}</p>
                     </td>
-
-                    {/* Type */}
                     <td className="px-4 py-4">
                       <div className="flex items-center gap-1.5">
                         {apt.type === "video" ? (
@@ -238,23 +306,15 @@ export default function AppointmentsPage() {
                           <MapPin size={13} className="text-blue-500" />
                         )}
                         <span
-                          className={`text-xs font-medium ${
-                            apt.type === "video"
-                              ? "text-purple-600"
-                              : "text-blue-600"
-                          }`}
+                          className={`text-xs font-medium ${apt.type === "video" ? "text-purple-600" : "text-blue-600"}`}
                         >
                           {apt.type === "video" ? "Video" : "In-person"}
                         </span>
                       </div>
                     </td>
-
-                    {/* Status */}
                     <td className="px-4 py-4">
                       <StatusBadge status={apt.status} styles={STATUS_STYLES} />
                     </td>
-
-                    {/* Payment */}
                     <td className="px-4 py-4">
                       {apt.payment_status ? (
                         <StatusBadge
@@ -265,8 +325,6 @@ export default function AppointmentsPage() {
                         <span className="text-xs text-slate-400">—</span>
                       )}
                     </td>
-
-                    {/* Actions */}
                     <td className="px-4 py-4">
                       <button
                         onClick={() => setViewAppointment(apt)}
@@ -297,11 +355,9 @@ export default function AppointmentsPage() {
               >
                 <ChevronLeft size={16} />
               </button>
-
               <span className="text-sm text-slate-600">
                 {page} / {meta.last_page || 1}
               </span>
-
               <button
                 onClick={() => setPage((p) => p + 1)}
                 disabled={page === meta.last_page}
@@ -313,14 +369,6 @@ export default function AppointmentsPage() {
           </div>
         )}
       </div>
-
-      {/* Details Modal */}
-      {viewAppointment && (
-        <AppointmentDetailsModal
-          appointment={viewAppointment}
-          onClose={() => setViewAppointment(null)}
-        />
-      )}
     </div>
   );
 }

@@ -234,7 +234,7 @@ export default function EditUserModal({
           {/* Doctor specialization */}
           {role === "doctor" && (
             <section className="space-y-4">
-              <h3 className="text-sm font-semibold text-slate-900">
+              {/* <h3 className="text-sm font-semibold text-slate-900">
                 Doctor Information
               </h3>
 
@@ -328,7 +328,7 @@ export default function EditUserModal({
                     </button>
                   </div>
                 )}
-              </div>
+              </div> */}
             </section>
           )}
 

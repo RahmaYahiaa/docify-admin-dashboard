@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
 import {
@@ -23,7 +23,6 @@ export default function DoctorVerificationDetailsPage() {
   const [localStatus, setLocalStatus] = useState(null);
   const { id } = useParams();
   const navigate = useNavigate();
-
   const [showRejectModal, setShowRejectModal] = useState(false);
 
   const { data: rawDoctor, isLoading, isError } = useDoctor(id);
@@ -45,22 +44,43 @@ export default function DoctorVerificationDetailsPage() {
         certificates: rawDoctor.uploaded_certificate
           ? [rawDoctor.uploaded_certificate]
           : [],
+        verificationChecklist: rawDoctor.verification_checklist || {},
       }
     : null;
-  const [checklistState, setChecklistState] = useState([
-    { label: "Medical certificate uploaded", valid: false },
-    { label: "Doctor profile information completed", valid: false },
-    { label: "Phone number provided", valid: false },
-    { label: "Email address verified", valid: false },
-  ]);
-  // const [checklistState, setChecklistState] = useState([]);
-  // useEffect(() => {
-  //   if (rawDoctor?.verificationChecklist) {
-  //     setChecklistState(rawDoctor.verificationChecklist);
-  //   }
-  // }, [rawDoctor]);
+
+  const [checklistState, setChecklistState] = useState([]);
+
+  useEffect(() => {
+    if (doctor?.verificationChecklist) {
+      setChecklistState([
+        {
+          key: "medical_certificate_uploaded",
+          label: "Medical certificate uploaded",
+          valid: !!doctor.verificationChecklist.medical_certificate_uploaded,
+        },
+        {
+          key: "doctor_profile_information_completed",
+          label: "Doctor profile information completed",
+          valid:
+            !!doctor.verificationChecklist.doctor_profile_information_completed,
+        },
+        {
+          key: "phone_number_provided",
+          label: "Phone number provided",
+          valid: !!doctor.verificationChecklist.phone_number_provided,
+        },
+        {
+          key: "email_address_verified",
+          label: "Email address verified",
+          valid: !!doctor.verificationChecklist.email_address_verified,
+        },
+      ]);
+    }
+  }, [rawDoctor]);
+
   const approveMutation = useApproveDoctor();
   const rejectMutation = useRejectDoctor();
+  const queryClient = useQueryClient();
 
   if (isLoading) {
     return (
@@ -77,36 +97,39 @@ export default function DoctorVerificationDetailsPage() {
       </div>
     );
   }
-const currentStatus = (localStatus ?? rawDoctor?.status ?? "")
-  .toLowerCase()
-  .trim();
 
-const isPending = currentStatus === "pending";
-const isRejected = currentStatus === "rejected";
-const isApproved = currentStatus === "approved";
+  const currentStatus = (localStatus ?? doctor.status ?? "")
+    .toLowerCase()
+    .trim();
+  const isPending = currentStatus === "pending";
+  const isRejected = currentStatus === "rejected";
+  const isApproved = currentStatus === "approved";
 
-  const queryClient = useQueryClient();
+  const handleApprove = () => {
+    approveMutation.mutate(id, {
+      onSuccess: () => {
+        setLocalStatus("approved");
+        queryClient.invalidateQueries(["doctor", id]);
+      },
+    });
+  };
 
-const handleApprove = () => {
-  approveMutation.mutate(id, {
-    onSuccess: () => {
-      setLocalStatus("approved");
-      queryClient.invalidateQueries(["doctor", id]);     },
-  });
-};
-
-  const handleReject = (reason) => {
+  const handleReject = (finalReason) => {
     rejectMutation.mutate(
-      { id, reason },
+      { id, reason: finalReason },
       {
         onSuccess: () => {
           setLocalStatus("rejected");
-           queryClient.invalidateQueries(["doctor", id]);
+          queryClient.invalidateQueries(["doctor", id]);
           setShowRejectModal(false);
         },
       },
     );
   };
+
+  const failedItems = checklistState
+    .filter((item) => !item.valid)
+    .map((item) => item.label);
 
   return (
     <div className="space-y-6">
@@ -119,68 +142,67 @@ const handleApprove = () => {
           >
             <ArrowLeft size={18} className="text-slate-600" />
           </button>
-
           <div>
             <h1 className="text-xl font-bold text-slate-900">
               Doctor Verification
             </h1>
-
             <p className="text-sm text-slate-500">Review application details</p>
           </div>
         </div>
 
-{/* Action Buttons */}
+        {/* Action Buttons */}
+        {isPending && (
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => setShowRejectModal(true)}
+              className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-red-600 border border-red-200 rounded-lg hover:bg-red-50"
+            >
+              <X size={16} />
+              Reject
+            </button>
 
-{isPending && (
-  <div className="flex items-center gap-3">
-    <button
-      onClick={() => setShowRejectModal(true)}
-      className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-red-600 border border-red-200 rounded-lg hover:bg-red-50"
-    >
-      <X size={16} />
-      Reject
-    </button>
+            <button
+              onClick={handleApprove}
+              disabled={approveMutation.isPending}
+              className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-green-600 rounded-lg hover:bg-green-700"
+            >
+              <CheckCircle size={16} />
+              {approveMutation.isPending ? "Approving..." : "Approve"}
+            </button>
+          </div>
+        )}
 
-    <button
-      onClick={handleApprove}
-      disabled={approveMutation.isPending}
-      className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-green-600 rounded-lg hover:bg-green-700"
-    >
-      <CheckCircle size={16} />
-      {approveMutation.isPending ? "Approving..." : "Approve"}
-    </button>
-  </div>
-)}
+        {isRejected && (
+          <div className="flex items-center gap-3">
+            <button
+              onClick={handleApprove}
+              className="px-4 py-2 text-white bg-green-600 rounded-lg hover:bg-green-700"
+            >
+              Re-evaluate
+            </button>
+          </div>
+        )}
 
-{isRejected && (
-  <div className="flex items-center gap-3">
-    <button
-      onClick={handleApprove}
-      className="px-4 py-2 text-white bg-green-600 rounded-lg hover:bg-green-700"
-    >
-      Re-evaluate
-    </button>
-  </div>
-)}
-
-{isApproved && (
-  <div className="flex items-center gap-3">
-    <button
-      onClick={() => {
-        rejectMutation.mutate(
-          { id, reason: "revoked" },
-          {
-            onSuccess: () => setLocalStatus("rejected"),
-          }
-        );
-      }}
-      className="px-4 py-2 text-red-600 border border-red-200 rounded-lg hover:bg-red-50"
-    >
-      Revoke approval
-    </button>
-  </div>
-)}
-
+        {isApproved && (
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => {
+                rejectMutation.mutate(
+                  { id, reason: "revoked" },
+                  {
+                    onSuccess: () => {
+                      setLocalStatus("rejected");
+                      queryClient.invalidateQueries(["doctor", id]);
+                    },
+                  },
+                );
+              }}
+              className="px-4 py-2 text-red-600 border border-red-200 rounded-lg hover:bg-red-50"
+            >
+              Revoke approval
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Content Grid */}
@@ -193,17 +215,22 @@ const handleApprove = () => {
               Doctor Information
             </h2>
 
-            {/* Avatar + Name */}
             <div className="flex items-center gap-4 mb-5">
-              <div className="w-12 h-12 rounded-full bg-slate-200 flex items-center justify-center">
-                <span className="text-lg font-semibold text-slate-600">
-                  {doctor.name?.charAt(0)?.toUpperCase() || "D"}
-                </span>
+              <div className="w-12 h-12 rounded-full overflow-hidden bg-slate-200 flex items-center justify-center">
+                {doctor.profile_picture ? (
+                  <img
+                    src={doctor.profile_picture}
+                    alt={doctor.name}
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <span className="text-lg font-semibold text-slate-600">
+                    {doctor.name?.charAt(0)?.toUpperCase() || "D"}
+                  </span>
+                )}
               </div>
-
               <div>
                 <p className="font-semibold text-slate-900">{doctor.name}</p>
-
                 <p className="text-sm text-slate-500">
                   {doctor.specialty || "—"}
                 </p>
@@ -214,20 +241,15 @@ const handleApprove = () => {
             <div className="space-y-3">
               <div className="flex items-center gap-2.5 text-sm text-slate-600">
                 <Mail size={14} className="text-slate-400 shrink-0" />
-
-                <span className="break-all">{doctor.email || "—"}</span>
+                <span className="break-all">{doctor.email}</span>
               </div>
-
               <div className="flex items-center gap-2.5 text-sm text-slate-600">
                 <Phone size={14} className="text-slate-400 shrink-0" />
-
-                <span>{doctor.phone || "—"}</span>
+                <span>{doctor.phone}</span>
               </div>
-
               <div className="flex items-center gap-2.5 text-sm text-slate-600">
                 <MapPin size={14} className="text-slate-400 shrink-0" />
-
-                <span>{doctor.address || "—"}</span>
+                <span>{doctor.address}</span>
               </div>
             </div>
 
@@ -237,30 +259,27 @@ const handleApprove = () => {
                 <p className="text-xs font-medium text-slate-400 uppercase tracking-wide mb-2">
                   About
                 </p>
-
                 <p className="text-sm text-slate-600 leading-6">
                   {doctor.about}
                 </p>
               </div>
             )}
           </div>
+
           {/* Professional Details */}
           <div className="bg-white rounded-[10px] border border-[#E5E5E5] p-6">
             <h2 className="text-sm font-semibold text-slate-900 mb-4">
               Professional Details
             </h2>
-
             <div className="flex items-center justify-between p-4 border border-[#E5E5E5] rounded-lg">
               <div>
                 <p className="text-xs text-slate-400 mb-1">
                   Years of Experience
                 </p>
-
                 <p className="text-base font-semibold text-slate-900">
                   {doctor.yearsOfExperience ?? 0} years
                 </p>
               </div>
-
               <div className="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center">
                 <CheckCircle size={18} className="text-[#0066CC]" />
               </div>
@@ -272,9 +291,8 @@ const handleApprove = () => {
             <h2 className="text-sm font-semibold text-slate-900 mb-4">
               Uploaded Certificates
             </h2>
-
             <div className="space-y-3">
-              {(doctor.certificates || []).map((cert, index) => (
+              {doctor.certificates.map((cert, index) => (
                 <div
                   key={index}
                   className="flex items-center justify-between p-3 border border-[#E5E5E5] rounded-lg"
@@ -282,21 +300,18 @@ const handleApprove = () => {
                   <div className="flex items-center gap-3">
                     <div className="w-8 h-8 bg-red-50 rounded-lg flex items-center justify-center">
                       <span className="text-xs font-bold text-red-500">
-                        PDF
+                        IMG
                       </span>
                     </div>
-
                     <div>
                       <p className="text-sm font-medium text-slate-900">
                         {cert.name}
                       </p>
-
                       <p className="text-xs text-slate-400">
-                        PDF • Uploaded Certificate
+                        Uploaded Document
                       </p>
                     </div>
                   </div>
-
                   <a
                     href={cert.url}
                     download
@@ -312,64 +327,50 @@ const handleApprove = () => {
           </div>
         </div>
 
-        {/* Right — Submission Info (1 col) */}
+        {/* Right — Submission Info & Checklist */}
         <div className="space-y-6">
-          {/* Submission Info */}
           <div className="bg-white rounded-[10px] border border-[#E5E5E5] p-6">
             <h2 className="text-sm font-semibold text-slate-900 mb-4">
               Submission Info
             </h2>
-
             <div className="space-y-3">
               <div className="flex items-center gap-2 text-sm text-slate-600">
                 <Calendar size={14} className="text-slate-400" />
-
                 <div>
                   <p className="text-xs text-slate-400">Submitted on</p>
-
                   <p className="font-medium text-slate-900">
-                    {doctor.submissionDate || doctor.submitted_at || "—"}
+                    {doctor.submissionDate}
                   </p>
                 </div>
               </div>
-
               <div>
                 <p className="text-xs text-slate-400 mb-1">Current Status</p>
-
                 <StatusBadge status={currentStatus} />
               </div>
             </div>
           </div>
 
-          {/* Verification Checklist */}
           <div className="bg-[#EFF6FF] border border-[#DBEAFE] rounded-[10px] p-6">
             <h2 className="text-sm font-semibold text-slate-900 mb-4">
               Verification Checklist
             </h2>
-
             <div className="space-y-2.5">
-              {/* {(doctor.verificationChecklist || []).map( */}
               {checklistState.map((item, index) => (
                 <div key={index} className="flex items-start gap-2 text-sm">
-                  <button
-                    onClick={() => {
-                      setChecklistState((prev) =>
-                        prev.map((c, i) =>
-                          i === index ? { ...c, valid: !c.valid } : c,
-                        ),
-                      );
-                    }}
-                  >
-                    <CheckCircle
-                      size={14}
-                      className={
-                        item.valid ? "text-green-500" : "text-slate-300"
-                      }
-                    />
-                  </button>
-
+                  <CheckCircle
+                    size={14}
+                    className={
+                      item.valid
+                        ? "text-green-500 mt-0.5"
+                        : "text-slate-300 mt-0.5"
+                    }
+                  />
                   <span
-                    className={item.valid ? "text-slate-700" : "text-slate-400"}
+                    className={
+                      item.valid
+                        ? "text-slate-700"
+                        : "text-slate-400 line-through"
+                    }
                   >
                     {item.label}
                   </span>
@@ -380,10 +381,10 @@ const handleApprove = () => {
         </div>
       </div>
 
-      {/* Reject Modal */}
       {showRejectModal && (
         <RejectModal
           doctor={doctor}
+          failedItems={failedItems}
           onClose={() => setShowRejectModal(false)}
           onConfirm={handleReject}
         />

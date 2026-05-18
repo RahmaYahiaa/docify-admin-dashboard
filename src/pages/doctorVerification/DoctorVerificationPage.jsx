@@ -15,14 +15,16 @@ const TABS = [
   { label: "All", value: "" },
   { label: "Pending", value: "pending" },
   { label: "Approved", value: "active" },
-  { label: "Rejected", value: "suspended" },
+  { label: "Rejected", value: "rejected" },
 ];
 
-// Normalise a single doctor entry regardless of API shape.
 function normaliseDoctor(doc) {
   if (!doc) return null;
 
-  // Shape A — nested under 'basic info'
+  const resolveStatus = (status) => {
+    return status || "pending";
+  };
+
   if (doc["basic info"]) {
     const basic = doc["basic info"];
     const prof = doc.professional_details || {};
@@ -36,11 +38,10 @@ function normaliseDoctor(doc) {
       specialty: basic.specialty || prof.specialty || "—",
       experience_years: prof.experience_years ?? null,
       submitted_at: subInfo.submitted_at || "—",
-      status: doc.status || "pending",
+      status: resolveStatus(doc.status),
     };
   }
 
-  // Shape B — flat object (most common from DoctorDetailsResource)
   return {
     id: doc.id,
     name:
@@ -52,11 +53,10 @@ function normaliseDoctor(doc) {
     specialty: doc.specialty || doc.specialization || "—",
     experience_years: doc.experience_years ?? null,
     submitted_at: doc.submitted_at || doc.created_at || "—",
-    status: doc.status || "pending",
+    status: resolveStatus(doc.status),
   };
 }
 
-// Avatar with initials fallback
 const BASE_URL = import.meta.env.VITE_BASE_URL || "";
 
 function DoctorAvatar({ src, name }) {
@@ -107,9 +107,7 @@ function EmptyState({ search, activeTab }) {
           <p className="text-xs text-slate-400">
             {search
               ? `No results for "${search}"`
-              : activeTab
-                ? `No doctors with status "${activeTab}"`
-                : "No doctor applications yet"}
+              : "No doctors found in this tab"}
           </p>
         </div>
       </td>
@@ -126,27 +124,40 @@ export default function DoctorVerificationPage() {
   const queryParams = {
     page,
     ...(search && { "filter[global]": search }),
-    ...(activeTab && { "filter[status]": activeTab }),
+    ...(activeTab &&
+      activeTab !== "rejected" && { "filter[status]": activeTab }),
   };
 
   const { data: rawData, isLoading, isError } = useDoctors(queryParams);
 
-  // Resolve doctors array from whatever shape the API returns
   const rawDoctors = Array.isArray(rawData?.data)
     ? rawData.data
     : Array.isArray(rawData)
       ? rawData
       : [];
 
-  const doctors = rawDoctors.map(normaliseDoctor).filter(Boolean);
+  const allDoctors = rawDoctors.map(normaliseDoctor).filter(Boolean);
+
+  const doctors = allDoctors.filter((doc) => {
+    if (activeTab === "") return true;
+    if (activeTab === "pending") return doc.status === "pending";
+    if (activeTab === "active")
+      return doc.status === "active" || doc.status === "approved";
+    if (activeTab === "rejected") {
+      return (
+        doc.status === "rejected" ||
+        doc.status === "blocked" ||
+        doc.status === "suspended"
+      );
+    }
+    return true;
+  });
 
   const meta = rawData?.meta || {};
   const totalPages = meta.last_page || 1;
-  const totalCount = meta.total || doctors.length;
+  const totalCount = meta.total || allDoctors.length;
 
-  // Status counts — available only when the collection provides them.
-  // If not in the response we show nothing (avoid showing wrong zeros).
-  const counts = rawData?.counts || rawData?.stats || null;
+  const counts = rawData?.stats || rawData?.counts || null;
 
   return (
     <div className="space-y-6">
@@ -193,30 +204,22 @@ export default function DoctorVerificationPage() {
                 }`}
               >
                 {tab.label}
-                {counts && tab.value === "" && (
+                {counts && (
                   <span
                     className={`ml-1.5 text-xs px-1.5 py-0.5 rounded-full ${
-                      activeTab === ""
+                      activeTab === tab.value
                         ? "bg-blue-50 text-[#0066CC]"
                         : "bg-slate-100 text-slate-500"
                     }`}
                   >
-                    {counts.total ?? totalCount}
-                  </span>
-                )}
-                {counts && tab.value === "pending" && (
-                  <span className="ml-1.5 text-xs px-1.5 py-0.5 rounded-full bg-slate-100 text-slate-500">
-                    {counts.pending ?? 0}
-                  </span>
-                )}
-                {counts && tab.value === "active" && (
-                  <span className="ml-1.5 text-xs px-1.5 py-0.5 rounded-full bg-slate-100 text-slate-500">
-                    {counts.approved ?? counts.active ?? 0}
-                  </span>
-                )}
-                {counts && tab.value === "suspended" && (
-                  <span className="ml-1.5 text-xs px-1.5 py-0.5 rounded-full bg-slate-100 text-slate-500">
-                    {counts.rejected ?? counts.suspended ?? 0}
+                    {tab.value === "" && (counts.total ?? totalCount)}
+                    {tab.value === "pending" && (counts.pending ?? 0)}
+                    {tab.value === "active" &&
+                      (counts.active ?? counts.approved ?? 0)}
+                    {tab.value === "rejected" &&
+                      (counts.rejected || 0) +
+                        (counts.blocked || 0) +
+                        (counts.suspended || 0)}
                   </span>
                 )}
               </button>
@@ -289,7 +292,7 @@ export default function DoctorVerificationPage() {
                       </td>
 
                       <td className="px-4 py-4 text-sm text-slate-600">
-                        {doc.specialty}
+                        {doc.specialty || "—"}
                       </td>
 
                       <td className="px-4 py-4 text-sm text-slate-600">
@@ -340,12 +343,12 @@ export default function DoctorVerificationPage() {
             </button>
 
             <span className="text-sm text-slate-600">
-              {page} / {meta.last_page || 1}
+              {page} / {totalPages}
             </span>
 
             <button
               onClick={() => setPage((p) => p + 1)}
-              disabled={page === meta.last_page}
+              disabled={page === totalPages}
               className="p-2 border border-[#E5E5E5] rounded-lg hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed"
             >
               <ChevronRight size={16} />

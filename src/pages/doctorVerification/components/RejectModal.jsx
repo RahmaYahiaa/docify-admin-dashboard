@@ -1,58 +1,92 @@
-import { useState } from 'react'
-import { X } from 'lucide-react'
+import { useState } from "react";
+import { AlertCircle, X } from "lucide-react";
 
-export default function RejectModal({ doctor, onClose, onConfirm }) {
-  const [reason, setReason] = useState('')
+export default function RejectModal({
+  doctor,
+  failedItems,
+  onClose,
+  onConfirm,
+}) {
+  const [customNote, setCustomNote] = useState("");
+
+  const handleSubmit = () => {
+    let finalReason = "";
+
+    if (failedItems.length > 0) {
+      finalReason += `Failed requirements: [${failedItems.join(", ")}]. `;
+    }
+
+    if (customNote.trim()) {
+      finalReason += `Admin Note: ${customNote.trim()}`;
+    } else if (failedItems.length === 0) {
+      finalReason = "Application rejected by admin review.";
+    }
+
+    onConfirm(finalReason);
+  };
 
   return (
-    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-[10px] w-[448px] p-6 space-y-5">
-
-        {/* Header */}
-        <div className="flex items-start justify-between">
-          <div>
-            <h2 className="text-base font-semibold text-slate-900">Reject Application</h2>
-            <p className="text-sm text-slate-500 mt-0.5">
-              Please provide a reason for rejecting this application. This will be sent to the doctor.
-            </p>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 animate-fade-in">
+      <div className="bg-white rounded-[12px] border border-[#E5E5E5] w-full max-w-md p-6 space-y-4 shadow-xl">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2 text-red-600">
+            <AlertCircle size={20} />
+            <h3 className="font-bold text-slate-900">Reject Application</h3>
           </div>
-          <button onClick={onClose} className="text-slate-400 hover:text-slate-600">
+          <button
+            onClick={onClose}
+            className="text-slate-400 hover:text-slate-600"
+          >
             <X size={18} />
           </button>
         </div>
 
-        {/* Reason Input */}
+        <p className="text-sm text-slate-600">
+          You are rejecting the verification application for{" "}
+          <span className="font-semibold">{doctor?.name}</span>.
+        </p>
+
+        {failedItems.length > 0 && (
+          <div className="bg-red-50 border border-red-100 rounded-lg p-3 space-y-1.5">
+            <p className="text-xs font-semibold text-red-700">
+              Detected missing requirements:
+            </p>
+            <ul className="list-disc pl-4 text-xs text-red-600 space-y-0.5">
+              {failedItems.map((item, i) => (
+                <li key={i}>{item}</li>
+              ))}
+            </ul>
+          </div>
+        )}
+
         <div className="space-y-1.5">
-          <label className="text-sm font-medium text-slate-700">
-            Rejection Reason <span className="text-red-500">*</span>
+          <label className="text-xs font-medium text-slate-700">
+            Additional Rejection Notes / Instructions
           </label>
           <textarea
-            value={reason}
-            onChange={(e) => setReason(e.target.value)}
-            placeholder="Enter reason for rejection..."
+            value={customNote}
+            onChange={(e) => setCustomNote(e.target.value)}
+            placeholder="Type specific reasons or instructions for the doctor..."
             rows={4}
-            className="w-full px-3 py-2 text-sm border border-[#E5E5E5] rounded-lg outline-none focus:border-[#0066CC] transition-colors resize-none"
+            className="w-full text-sm px-3 py-2 border border-[#E5E5E5] rounded-lg outline-none focus:border-red-500 resize-none transition-colors"
           />
         </div>
 
-        {/* Actions */}
-        <div className="flex items-center justify-end gap-3">
+        <div className="flex items-center gap-3 pt-2">
           <button
             onClick={onClose}
-            className="px-4 py-2 text-sm font-medium text-slate-700 border border-[#E5E5E5] rounded-lg hover:bg-slate-50 transition-colors"
+            className="flex-1 py-2 text-sm font-medium text-slate-700 border border-[#E5E5E5] rounded-lg hover:bg-slate-50 transition-colors"
           >
             Cancel
           </button>
           <button
-            onClick={() => onConfirm(reason)}
-            disabled={!reason.trim()}
-            className="px-4 py-2 text-sm font-medium text-white bg-red-500 rounded-lg hover:bg-red-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            onClick={handleSubmit}
+            className="flex-1 py-2 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 transition-colors"
           >
-            Reject Application
+            Confirm Rejection
           </button>
         </div>
-
       </div>
     </div>
-  )
+  );
 }

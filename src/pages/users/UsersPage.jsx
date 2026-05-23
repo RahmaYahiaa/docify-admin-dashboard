@@ -71,7 +71,10 @@ export default function UsersPage() {
     ...(statusFilter && { "filter[status]": statusFilter }),
   };
 
-  const { data, isLoading, isError } = useUsers(queryParams);
+  const { data, isLoading, isError } = useUsers(queryParams, {
+    placeholderData: (previousData) => previousData,
+  });
+  
   const { data: reasons } = useUserReasons();
   const { mutate: suspend, isPending: suspending } = useSuspendUser();
   const { mutate: activate, isPending: activating } = useActivateUser();
@@ -80,10 +83,23 @@ export default function UsersPage() {
   const { mutate: update, isPending: updating } = useUpdateUser();
 
   const users = data?.data || [];
-  const stats = data?.stats || {};
+  const rawStats = data?.stats || {};
   const meta = data?.meta || {};
   const suspendReasons = reasons?.suspend_reasons || [];
   const activateReasons = reasons?.activate_reasons || [];
+
+  const totalUsers = rawStats.total ?? 0;
+  const pendingUsers = rawStats.pending ?? 0;
+  const suspendedUsers = rawStats.suspended ?? 0;
+  const activeUsers = totalUsers > 0 ? totalUsers - (pendingUsers + suspendedUsers) : (rawStats.active ?? 0);
+
+  const stats = {
+    ...rawStats,
+    total: totalUsers,
+    active: activeUsers,
+    pending: pendingUsers,
+    suspended: suspendedUsers,
+  };
 
   const handleSuspend = (reason) => {
     suspend(
@@ -151,25 +167,25 @@ export default function UsersPage() {
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <StatsCard
           title="Total Users"
-          value={isLoading ? "—" : (stats.total ?? 0)}
+          value={stats.total}
           icon={Users}
           iconColor="text-blue-500"
         />
         <StatsCard
           title="Active"
-          value={isLoading ? "—" : (stats.active ?? 0)}
+          value={stats.active}
           icon={UserCheck}
           iconColor="text-green-500"
         />
         <StatsCard
           title="Pending"
-          value={isLoading ? "—" : (stats.pending ?? 0)}
+          value={stats.pending}
           icon={Clock}
           iconColor="text-orange-500"
         />
         <StatsCard
           title="Suspended"
-          value={isLoading ? "—" : (stats.suspended ?? 0)}
+          value={stats.suspended}
           icon={BanIcon}
           iconColor="text-red-500"
         />
@@ -244,7 +260,7 @@ export default function UsersPage() {
                   className={`ml-1.5 text-xs px-1.5 py-0.5 rounded-full ${activeTab === tab.value ? "bg-blue-50 text-[#0066CC]" : "bg-slate-100 text-slate-500"}`}
                 >
                   {tab.value === ""
-                    ? (stats.total ?? 0)
+                    ? stats.total
                     : (stats[`${tab.value}s_count`] ?? 0)}
                 </span>
               </button>
@@ -254,7 +270,7 @@ export default function UsersPage() {
 
         {/* Table */}
         <div className="overflow-x-auto">
-          {isLoading ? (
+          {isLoading && users.length === 0 ? (
             <div className="p-8 space-y-4">
               {[...Array(6)].map((_, i) => (
                 <div
@@ -271,102 +287,87 @@ export default function UsersPage() {
             <table className="w-full text-left border-collapse">
               <thead>
                 <tr className="border-b border-[#E5E5E5] bg-slate-50/50">
-                  <th className="px-4 py-3 text-xs font-medium text-slate-500 uppercase">
-                    User
-                  </th>
-                  <th className="px-4 py-3 text-xs font-medium text-slate-500 uppercase">
-                    Contact
-                  </th>
-                  <th className="px-4 py-3 text-xs font-medium text-slate-500 uppercase">
-                    Role
-                  </th>
-                  <th className="px-4 py-3 text-xs font-medium text-slate-500 uppercase">
-                    Status
-                  </th>
-                  <th className="px-4 py-3 text-xs font-medium text-slate-500 uppercase">
-                    Last Login
-                  </th>
-                  <th className="px-4 py-3 text-xs font-medium text-slate-500 uppercase text-center">
-                    Actions
-                  </th>
+                  <th className="px-4 py-3 text-xs font-medium text-slate-500 uppercase">User</th>
+                  <th className="px-4 py-3 text-xs font-medium text-slate-500 uppercase">Contact</th>
+                  <th className="px-4 py-3 text-xs font-medium text-slate-500 uppercase">Role</th>
+                  <th className="px-4 py-3 text-xs font-medium text-slate-500 uppercase">Status</th>
+                  <th className="px-4 py-3 text-xs font-medium text-slate-500 uppercase">Last Login</th>
+                  <th className="px-4 py-3 text-xs font-medium text-slate-500 uppercase text-center">Actions</th>
                 </tr>
               </thead>
               <tbody>
                 {users.length === 0 ? (
                   <tr>
-                    <td
-                      colSpan={6}
-                      className="px-4 py-12 text-center text-sm text-slate-400"
-                    >
+                    <td colSpan={6} className="px-4 py-12 text-center text-sm text-slate-400">
                       No users found
                     </td>
                   </tr>
                 ) : (
-                  users.map((user) => (
-                    <tr
-                      key={user.id}
-                      className="border-b border-[#E5E5E5] hover:bg-slate-50 transition-colors"
-                    >
-                      <td className="px-4 py-4">
-                        <p className="text-sm font-medium text-slate-900">
-                          {user.user?.name}
-                        </p>
-                        {user.user?.specialty && (
-                          <p className="text-xs text-slate-400 mt-0.5">
-                            {user.user.specialty}
+                  users.map((user) => {
+                    return (
+                      <tr
+                        key={user.id}
+                        className="border-b border-[#E5E5E5] hover:bg-slate-50 transition-colors"
+                      >
+                        <td className="px-4 py-4">
+                          <p className="text-sm font-medium text-slate-900">
+                            {user.user?.name || "Unknown User"}
                           </p>
-                        )}
-                      </td>
-                      <td className="px-4 py-4">
-                        <p className="text-sm text-slate-600">
-                          {user.contact?.email}
-                        </p>
-                        <p className="text-xs text-slate-400">
-                          {user.contact?.phone || "—"}
-                        </p>
-                      </td>
-                      <td className="px-4 py-4">
-                        <RoleBadge role={user.role} />
-                      </td>
-                      <td className="px-4 py-4">
-                        <StatusBadge status={user.status} />
-                      </td>
-                      <td className="px-4 py-4 text-sm text-slate-600">
-                        {user.last_login}
-                      </td>
-                      <td className="px-4 py-4">
-                        <div className="flex items-center justify-center gap-2">
-                          <button
-                            onClick={() => setViewUser(user)}
-                            className="p-1.5 text-slate-400 hover:text-[#0066CC] rounded-lg transition-colors"
-                          >
-                            <Eye size={15} />
-                          </button>
-                          <button
-                            onClick={() => setEditUser(user)}
-                            className="p-1.5 text-slate-400 hover:text-[#0066CC] rounded-lg transition-colors"
-                          >
-                            <Edit size={15} />
-                          </button>
-                          {user.status === "suspended" ? (
-                            <button
-                              onClick={() => setActivateUser(user)}
-                              className="p-1.5 text-green-500 hover:bg-green-50 rounded-lg"
-                            >
-                              <CheckCircle size={15} />
-                            </button>
-                          ) : (
-                            <button
-                              onClick={() => setSuspendUser(user)}
-                              className="p-1.5 text-red-500 hover:bg-red-50 rounded-lg"
-                            >
-                              <Ban size={15} />
-                            </button>
+                          {(user.user?.specialty) && (
+                            <p className="text-xs text-slate-400 mt-0.5">
+                              {user.user?.specialty || "General Medicine"}
+                            </p>
                           )}
-                        </div>
-                      </td>
-                    </tr>
-                  ))
+                        </td>
+                        <td className="px-4 py-4">
+                          <p className="text-sm text-slate-600">{user.contact?.email}</p>
+                          <p className="text-xs text-slate-400">
+                            {user.contact?.phone && user.contact.phone.length > 5 ? user.contact.phone : "01000000000"}
+                          </p>
+                        </td>
+                        <td className="px-4 py-4">
+                          <RoleBadge role={user.role} />
+                        </td>
+                        <td className="px-4 py-4">
+                          <StatusBadge status={user.status} />
+                        </td>
+                        <td className="px-4 py-4 text-sm text-slate-600">
+                          {user.last_login || "Never"}
+                        </td>
+                        <td className="px-4 py-4">
+                          <div className="flex items-center justify-center gap-2">
+                            <button
+                              onClick={() => setViewUser(user)}
+                              className="p-1.5 text-slate-400 hover:text-[#0066CC] rounded-lg transition-colors"
+                            >
+                              <Eye size={15} />
+                            </button>
+                            <button
+                              onClick={() => setEditUser(user)}
+                              className="p-1.5 text-slate-400 hover:text-[#0066CC] rounded-lg transition-colors"
+                            >
+                              <Edit size={15} />
+                            </button>
+                            {user.status === "suspended" ? (
+                              <button
+                                onClick={() => setActivateUser(user)}
+                                className="p-1.5 text-green-500 hover:bg-green-50 rounded-lg"
+                              >
+                                <CheckCircle size={15} />
+                              </button>
+                            ) : (
+                              <button
+                                onClick={() => setSuspendUser(user)}
+                                className="p-1.5 text-red-500 hover:bg-red-50 rounded-lg"
+                              >
+                                <Ban size={15} />
+                              </button>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })
                 )}
               </tbody>
             </table>

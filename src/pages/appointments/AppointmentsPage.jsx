@@ -7,12 +7,14 @@ import {
   ChevronLeft,
   ChevronRight,
   Filter,
+  Calendar,
+  CheckCircle,
+  UserX,
 } from "lucide-react";
 import PageHeader from "@/components/shared/PageHeader";
 import StatsCard from "@/components/shared/StatsCard";
 import { useAppointments } from "@/hooks/useAppointments";
 import { formatAppointmentId, formatStatus } from "@/utils/formatters";
-import { Calendar, CheckCircle, UserX } from "lucide-react";
 
 const TABS = [
   { label: "All", value: "", countKey: "all" },
@@ -42,6 +44,7 @@ const PAYMENT_STYLES = {
   pending: "text-orange-500 bg-orange-50",
   refunded: "text-blue-600 bg-blue-50",
   failed: "text-red-600 bg-red-50",
+  not_applicable: "text-slate-500 bg-slate-100", 
 };
 
 function StatusBadge({ status, styles }) {
@@ -76,12 +79,17 @@ export default function AppointmentsPage() {
     };
   }, [search]);
 
-  const { data, isLoading, isError } = useAppointments({
-    ...(debouncedSearch && { "filter[search]": debouncedSearch }),
-    ...(activeTab && { "filter[status]": activeTab }),
-    ...(typeFilter && { "filter[type]": typeFilter }),
-    page,
-  });
+  const { data, isLoading, isError } = useAppointments(
+    {
+      ...(debouncedSearch && { "filter[search]": debouncedSearch }),
+      ...(activeTab && { "filter[status]": activeTab }),
+      ...(typeFilter && { "filter[type]": typeFilter }),
+      page,
+    },
+    {
+      placeholderData: (previousData) => previousData,
+    },
+  );
 
   const appointments = data?.data || [];
   const stats = data?.stats || {};
@@ -94,29 +102,28 @@ export default function AppointmentsPage() {
         subtitle="Monitor and manage all platform appointments"
       />
 
-      {/* Stats */}
       <div className="grid grid-cols-4 gap-4">
         <StatsCard
           title="Total"
-          value={isLoading ? "—" : (stats.all ?? 0)}
+          value={stats.all ?? 0}
           icon={Calendar}
           iconColor="text-blue-500"
         />
         <StatsCard
           title="Upcoming"
-          value={isLoading ? "—" : (stats.confirmed ?? 0)}
+          value={stats.confirmed ?? 0}
           icon={Calendar}
           iconColor="text-orange-500"
         />
         <StatsCard
           title="Completed"
-          value={isLoading ? "—" : (stats.completed ?? 0)}
+          value={stats.completed ?? 0}
           icon={CheckCircle}
           iconColor="text-green-500"
         />
         <StatsCard
           title="No Show"
-          value={isLoading ? "—" : (stats.no_show ?? 0)}
+          value={stats.no_show ?? 0}
           icon={UserX}
           iconColor="text-red-500"
         />
@@ -124,7 +131,7 @@ export default function AppointmentsPage() {
 
       {/* Table Card */}
       <div className="bg-white rounded-[10px] border border-[#E5E5E5]">
-        {/* Top Bar: Search + Filters Button */}
+        {/* Top Bar */}
         <div className="p-4 border-b border-[#E5E5E5] flex items-center justify-between gap-4">
           <div className="relative flex-1 max-w-md">
             <Search
@@ -235,7 +242,7 @@ export default function AppointmentsPage() {
         </div>
 
         {/* Table */}
-        {isLoading ? (
+        {isLoading && appointments.length === 0 ? (
           <div className="p-8 space-y-4">
             {[...Array(5)].map((_, i) => (
               <div
@@ -273,69 +280,81 @@ export default function AppointmentsPage() {
                 </tr>
               </thead>
               <tbody>
-                {appointments.map((apt) => (
-                  <tr
-                    key={apt.appointment_id}
-                    className="border-b border-[#E5E5E5] last:border-0 hover:bg-slate-50 transition-colors"
-                  >
-                    <td className="px-4 py-4 text-xs font-mono text-slate-600 whitespace-nowrap">
-                      {formatAppointmentId(apt.appointment_id)}
-                    </td>
-                    <td className="px-4 py-4">
-                      <p className="text-sm font-medium text-slate-900">
-                        {apt.patient}
+                {appointments.map((apt) => {
+                
+
+                  let displayPaymentStatus = apt.payment_status;
+                  if (apt.status === "cancelled" && !apt.payment_status) {
+                    displayPaymentStatus = "not_applicable";
+                  }
+
+                  return (
+                    <tr
+                      key={apt.appointment_id}
+                      className="border-b border-[#E5E5E5] last:border-0 hover:bg-slate-50 transition-colors"
+                    >
+                      <td className="px-4 py-4 text-xs font-mono text-slate-600 whitespace-nowrap">
+                        {formatAppointmentId(apt.appointment_id)}
+                      </td>
+                      <td className="px-4 py-4">
+                        <p className="text-sm font-medium text-slate-900">
+                          {apt.patient}
+                        </p>
+                      </td>
+                      <td className="px-4 py-4">
+                        <p className="text-sm font-medium text-slate-900">
+                          {apt.doctor}
+                        </p>
+                         <p className="text-xs text-slate-400">
+                        {apt.specialty ? apt.specialty : "General Medicine"}
                       </p>
-                    </td>
-                    <td className="px-4 py-4">
-                      <p className="text-sm font-medium text-slate-900">
-                        {apt.doctor}
-                      </p>
-                      <p className="text-xs text-slate-400">
-                        {apt.specialty || "—"}
-                      </p>
-                    </td>
-                    <td className="px-4 py-4 whitespace-nowrap">
-                      <p className="text-sm text-slate-900">{apt.date}</p>
-                      <p className="text-xs text-slate-400">{apt.time}</p>
-                    </td>
-                    <td className="px-4 py-4">
-                      <div className="flex items-center gap-1.5">
-                        {apt.type === "video" ? (
-                          <Video size={13} className="text-purple-500" />
-                        ) : (
-                          <MapPin size={13} className="text-blue-500" />
-                        )}
-                        <span
-                          className={`text-xs font-medium ${apt.type === "video" ? "text-purple-600" : "text-blue-600"}`}
-                        >
-                          {apt.type === "video" ? "Video" : "In-person"}
-                        </span>
-                      </div>
-                    </td>
-                    <td className="px-4 py-4">
-                      <StatusBadge status={apt.status} styles={STATUS_STYLES} />
-                    </td>
-                    <td className="px-4 py-4">
-                      {apt.payment_status ? (
+                      </td>
+                      <td className="px-4 py-4 whitespace-nowrap">
+                        <p className="text-sm text-slate-900">{apt.date}</p>
+                        <p className="text-xs text-slate-400">{apt.time}</p>
+                      </td>
+                      <td className="px-4 py-4">
+                        <div className="flex items-center gap-1.5">
+                          {apt.type === "video" ? (
+                            <Video size={13} className="text-purple-500" />
+                          ) : (
+                            <MapPin size={13} className="text-blue-500" />
+                          )}
+                          <span
+                            className={`text-xs font-medium ${apt.type === "video" ? "text-purple-600" : "text-blue-600"}`}
+                          >
+                            {apt.type === "video" ? "Video" : "In-person"}
+                          </span>
+                        </div>
+                      </td>
+                      <td className="px-4 py-4">
                         <StatusBadge
-                          status={apt.payment_status}
-                          styles={PAYMENT_STYLES}
+                          status={apt.status}
+                          styles={STATUS_STYLES}
                         />
-                      ) : (
-                        <span className="text-xs text-slate-400">—</span>
-                      )}
-                    </td>
-                    <td className="px-4 py-4">
-                      <button
-                        onClick={() => setViewAppointment(apt)}
-                        className="p-1.5 text-slate-400 hover:text-[#0066CC] hover:bg-blue-50 rounded-lg transition-colors"
-                        title="View Details"
-                      >
-                        <Eye size={15} />
-                      </button>
-                    </td>
-                  </tr>
-                ))}
+                      </td>
+                      <td className="px-4 py-4">
+                        {displayPaymentStatus ? (
+                          <StatusBadge
+                            status={displayPaymentStatus}
+                            styles={PAYMENT_STYLES}
+                          />
+                        ) : (
+                          <span className="text-xs text-slate-400">—</span>
+                        )}
+                      </td>
+                      <td className="px-4 py-4">
+                        <button
+                          onClick={() => setViewAppointment(apt)}
+                          className="p-1.5 text-slate-400 hover:text-[#0066CC] hover:bg-blue-50 rounded-lg transition-colors"
+                          title="View Details"
+                        >
+                          <Eye size={15} />
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>

@@ -3,7 +3,7 @@ import { X, AlertCircle } from 'lucide-react'
 export default function DisableSpecialtyModal({ specialty, onClose, onConfirm }) {
   return (
     <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-[10px] w-[448px] p-6 space-y-5">
+      <div className="bg-white rounded-[10px] w-full max-w-[448px] p-6 space-y-5">
 
         {/* Header */}
         <div className="flex items-start justify-between">

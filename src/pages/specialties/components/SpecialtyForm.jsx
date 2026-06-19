@@ -70,7 +70,7 @@ export default function SpecialtyForm({
     <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-[10px] w-full max-w-2xl max-h-[90vh] overflow-y-auto">
         {/* ── Header ── */}
-        <div className="flex items-start justify-between p-6 border-b border-[#E5E5E5]">
+        <div className="flex items-start justify-between p-4 sm:p-6 border-b border-[#E5E5E5]">
           <div>
             <h2 className="text-xl font-bold text-slate-900">
               {isEdit ? "Edit Specialty" : "Add New Specialty"}
@@ -90,7 +90,7 @@ export default function SpecialtyForm({
         </div>
 
         {/* ── Fields ── */}
-        <div className="p-6 space-y-5">
+        <div className="p-4 sm:p-6 space-y-5">
           {/* Name */}
           <div className="space-y-1.5">
             <label className="text-sm font-medium text-slate-700">
@@ -202,7 +202,7 @@ export default function SpecialtyForm({
         </div>
 
         {/* ── Footer ── */}
-        <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-[#E5E5E5]">
+        <div className="flex items-center justify-end gap-3 px-4 sm:px-6 py-4 border-t border-[#E5E5E5]">
           <button
             onClick={onClose}
             disabled={loading}

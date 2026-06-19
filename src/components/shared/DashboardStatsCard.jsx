@@ -1,7 +1,7 @@
 export default function DashboardStatsCard({ title, value, icon: Icon, iconColor = 'text-blue-600', children }) {
   return (
-    <div className="bg-white rounded-[10px] border border-[#E5E5E5] p-6 flex items-start justify-between">
-      <div className="flex flex-col gap-3 flex-1">
+    <div className="bg-white rounded-[10px] border border-[#E5E5E5] p-4 sm:p-6 flex items-start justify-between">
+      <div className="flex flex-col gap-3 flex-1 min-w-0">
         <div className={`${iconColor}`}>
           <Icon size={28} strokeWidth={1.5} />
         </div>

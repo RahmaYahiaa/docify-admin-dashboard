@@ -61,7 +61,7 @@ export default function DashboardPage() {
           icon={UserCheck}
           iconColor="text-blue-500"
         >
-          <div className="flex items-center gap-6 text-sm">
+          <div className="flex flex-wrap items-center gap-x-6 gap-y-1 text-sm">
             <span>
               Verified{' '}
               <span className="font-semibold text-green-600">
@@ -92,7 +92,7 @@ export default function DashboardPage() {
           icon={Calendar}
           iconColor="text-green-500"
         >
-          <div className="flex items-center gap-6 text-sm">
+          <div className="flex flex-wrap items-center gap-x-6 gap-y-1 text-sm">
             <span>
               Completed{' '}
               <span className="font-semibold text-green-600">
@@ -115,7 +115,7 @@ export default function DashboardPage() {
           icon={DollarSign}
           iconColor="text-green-500"
         >
-          <div className="flex items-center gap-6 text-sm">
+          <div className="flex flex-wrap items-center gap-x-6 gap-y-1 text-sm">
             <span>
               Cash{' '}
               <span className="font-semibold text-slate-700">

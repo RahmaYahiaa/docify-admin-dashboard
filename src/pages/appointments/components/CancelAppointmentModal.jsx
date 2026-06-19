@@ -6,7 +6,7 @@ export default function CancelAppointmentModal({ appointment, onClose, onConfirm
 
   return (
     <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-[10px] w-[448px]">
+      <div className="bg-white rounded-[10px] w-full max-w-[448px]">
 
         {/* Header */}
         <div className="flex items-center gap-3 px-6 pt-6 pb-4">
@@ -41,7 +41,7 @@ export default function CancelAppointmentModal({ appointment, onClose, onConfirm
           </p>
 
           {/* Actions */}
-          <div className="flex items-center justify-end gap-3 pt-1">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-end gap-3 pt-1">
             <button
               onClick={onClose}
               className="px-4 py-2 text-sm font-medium text-slate-700 border border-[#E5E5E5] rounded-lg hover:bg-slate-50"

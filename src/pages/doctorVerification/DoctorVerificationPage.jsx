@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Search,
@@ -14,7 +14,7 @@ import { useDoctors } from "@/hooks/useDoctors";
 const TABS = [
   { label: "All", value: "" },
   { label: "Pending", value: "pending" },
-  { label: "Approved", value: "active" },
+  { label: "Approved", value: "active" }, 
   { label: "Rejected", value: "rejected" },
 ];
 
@@ -25,34 +25,20 @@ function normaliseDoctor(doc) {
     return status || "pending";
   };
 
-  if (doc["basic info"]) {
-    const basic = doc["basic info"];
-    const prof = doc.professional_details || {};
-    const subInfo = doc.submission_info || {};
-
-    return {
-      id: basic.id,
-      name: basic.name || "—",
-      email: doc.email || "—",
-      profile_picture: basic.profile_picture || null,
-      specialty: basic.specialty || prof.specialty || "—",
-      experience_years: prof.experience_years ?? null,
-      submitted_at: subInfo.submitted_at || "—",
-      status: resolveStatus(doc.status),
-    };
-  }
+  const basic = doc["basic info"] || {};
+  const prof = doc.professional_details || {};
+  const subInfo = doc.submission_info || {};
 
   return {
-    id: doc.id,
-    name:
-      doc.name ||
-      `${doc.first_name || ""} ${doc.last_name || ""}`.trim() ||
-      "—",
+    id: basic.id || doc.id,
+    name: basic.name || doc.name || "—",
     email: doc.email || "—",
-    profile_picture: doc.profile_picture || doc.avatar || null,
-    specialty: doc.specialty || doc.specialization || "—",
-    experience_years: doc.experience_years ?? null,
-    submitted_at: doc.submitted_at || doc.created_at || "—",
+    profile_picture:
+      basic.profile_picture || doc.profile_picture || doc.avatar || null,
+    specialty: basic.specialty || doc.specialty || prof.specialty || "—",
+    experience_years: prof.experience_years ?? doc.experience_years ?? null,
+    submitted_at:
+      subInfo.submitted_at || doc.submitted_at || doc.created_at || "—",
     status: resolveStatus(doc.status),
   };
 }
@@ -95,7 +81,7 @@ function DoctorAvatar({ src, name }) {
   );
 }
 
-function EmptyState({ search, activeTab }) {
+function EmptyState({ search }) {
   return (
     <tr>
       <td colSpan={6} className="px-4 py-16 text-center">
@@ -105,9 +91,7 @@ function EmptyState({ search, activeTab }) {
           </div>
           <p className="text-sm font-medium text-slate-700">No doctors found</p>
           <p className="text-xs text-slate-400">
-            {search
-              ? `No results for "${search}"`
-              : "No doctors found in this tab"}
+            {search ? `No results for "${search}"` : "No doctors available"}
           </p>
         </div>
       </td>
@@ -121,43 +105,34 @@ export default function DoctorVerificationPage() {
   const [activeTab, setActiveTab] = useState("");
   const [page, setPage] = useState(1);
 
+  useEffect(() => {
+    setPage(1);
+  }, [search, activeTab]);
+
   const queryParams = {
     page,
     ...(search && { "filter[global]": search }),
-    ...(activeTab &&
-      activeTab !== "rejected" && { "filter[status]": activeTab }),
+    ...(activeTab && { "filter[status]": activeTab }),
   };
 
   const { data: rawData, isLoading, isError } = useDoctors(queryParams);
 
-  const rawDoctors = Array.isArray(rawData?.data)
-    ? rawData.data
-    : Array.isArray(rawData)
-      ? rawData
-      : [];
-
-  const allDoctors = rawDoctors.map(normaliseDoctor).filter(Boolean);
-
-  const doctors = allDoctors.filter((doc) => {
-    if (activeTab === "") return true;
-    if (activeTab === "pending") return doc.status === "pending";
-    if (activeTab === "active")
-      return doc.status === "active" || doc.status === "approved";
-    if (activeTab === "rejected") {
-      return (
-        doc.status === "rejected" ||
-        doc.status === "blocked" ||
-        doc.status === "suspended"
-      );
-    }
-    return true;
-  });
+  const rawDoctors = Array.isArray(rawData?.data) ? rawData.data : [];
+  const doctors = rawDoctors.map(normaliseDoctor).filter(Boolean);
 
   const meta = rawData?.meta || {};
   const totalPages = meta.last_page || 1;
-  const totalCount = meta.total || allDoctors.length;
+  const totalCount = meta.total || doctors.length;
 
-  const counts = rawData?.stats || rawData?.counts || null;
+  const statsFromAPI = rawData?.stats || {};
+
+  const getTabCount = (tabValue) => {
+    if (tabValue === "") return meta.total || 0; 
+    if (tabValue === "pending") return statsFromAPI.pending ?? 0;
+    if (tabValue === "active") return statsFromAPI.active ?? 0;
+    if (tabValue === "rejected") return statsFromAPI.rejected ?? 0;
+    return 0;
+  };
 
   return (
     <div className="space-y-6">
@@ -178,10 +153,7 @@ export default function DoctorVerificationPage() {
               type="text"
               placeholder="Search by name or specialty..."
               value={search}
-              onChange={(e) => {
-                setSearch(e.target.value);
-                setPage(1);
-              }}
+              onChange={(e) => setSearch(e.target.value)}
               className="w-full pl-9 pr-4 py-2 text-sm border border-[#E5E5E5] rounded-lg outline-none focus:border-[#0066CC] transition-colors"
             />
           </div>
@@ -189,39 +161,27 @@ export default function DoctorVerificationPage() {
 
         {/* Tabs */}
         <div className="px-4 border-b border-[#E5E5E5]">
-          <div className="flex gap-6">
+          <div className="flex gap-6 overflow-x-auto no-scrollbar">
             {TABS.map((tab) => (
               <button
                 key={tab.value}
-                onClick={() => {
-                  setActiveTab(tab.value);
-                  setPage(1);
-                }}
-                className={`py-3 text-sm font-medium border-b-2 transition-colors ${
+                onClick={() => setActiveTab(tab.value)}
+                className={`py-3 text-sm font-medium border-b-2 whitespace-nowrap transition-colors ${
                   activeTab === tab.value
                     ? "border-[#0066CC] text-[#0066CC]"
                     : "border-transparent text-slate-500 hover:text-slate-700"
                 }`}
               >
                 {tab.label}
-                {counts && (
-                  <span
-                    className={`ml-1.5 text-xs px-1.5 py-0.5 rounded-full ${
-                      activeTab === tab.value
-                        ? "bg-blue-50 text-[#0066CC]"
-                        : "bg-slate-100 text-slate-500"
-                    }`}
-                  >
-                    {tab.value === "" && (counts.total ?? totalCount)}
-                    {tab.value === "pending" && (counts.pending ?? 0)}
-                    {tab.value === "active" &&
-                      (counts.active ?? counts.approved ?? 0)}
-                    {tab.value === "rejected" &&
-                      (counts.rejected || 0) +
-                        (counts.blocked || 0) +
-                        (counts.suspended || 0)}
-                  </span>
-                )}
+                <span
+                  className={`ml-1.5 text-xs px-1.5 py-0.5 rounded-full ${
+                    activeTab === tab.value
+                      ? "bg-blue-50 text-[#0066CC]"
+                      : "bg-slate-100 text-slate-500"
+                  }`}
+                >
+                  {getTabCount(tab.value)}
+                </span>
               </button>
             ))}
           </div>
@@ -267,7 +227,7 @@ export default function DoctorVerificationPage() {
               </thead>
               <tbody>
                 {doctors.length === 0 ? (
-                  <EmptyState search={search} activeTab={activeTab} />
+                  <EmptyState search={search} />
                 ) : (
                   doctors.map((doc) => (
                     <tr
@@ -292,7 +252,7 @@ export default function DoctorVerificationPage() {
                       </td>
 
                       <td className="px-4 py-4 text-sm text-slate-600">
-                        {doc.specialty || "—"}
+                        {doc.specialty}
                       </td>
 
                       <td className="px-4 py-4 text-sm text-slate-600">
@@ -329,7 +289,7 @@ export default function DoctorVerificationPage() {
         )}
 
         {/* Pagination */}
-        <div className="px-4 py-3 border-t border-[#E5E5E5] flex items-center justify-between">
+        <div className="px-4 py-3 border-t border-[#E5E5E5] flex flex-col sm:flex-row items-center justify-between gap-2">
           <span className="text-sm text-slate-500">
             Showing {doctors.length} of {totalCount} doctors
           </span>

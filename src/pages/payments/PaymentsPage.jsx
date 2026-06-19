@@ -100,7 +100,7 @@ export default function PaymentsPage() {
       <div className="bg-white rounded-[10px] border border-[#E5E5E5]">
         {/* Search + Filters */}
         <div className="p-4 border-b border-[#E5E5E5] space-y-4">
-          <div className="flex items-center gap-3">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
             <div className="relative flex-1">
               <Search
                 size={16}
@@ -205,7 +205,7 @@ export default function PaymentsPage() {
 
         {/* Tabs */}
         <div className="px-4 border-b border-[#E5E5E5]">
-          <div className="flex gap-6">
+          <div className="flex gap-6 overflow-x-auto no-scrollbar">
             {[
               { label: "Payments", value: "payments", count: paymentsCount },
               { label: "Refunds", value: "refunds", count: refundsCount },
@@ -216,7 +216,7 @@ export default function PaymentsPage() {
                   setActiveTab(tab.value);
                   setPage(1);
                 }}
-                className={`py-3 text-sm font-medium border-b-2 transition-colors ${
+                className={`py-3 text-sm font-medium border-b-2 whitespace-nowrap transition-colors ${
                   activeTab === tab.value
                     ? "border-[#0066CC] text-[#0066CC]"
                     : "border-transparent text-slate-500 hover:text-slate-700"
@@ -250,7 +250,7 @@ export default function PaymentsPage() {
             </div>
           ) : (
             <div className="overflow-x-auto">
-              <table className="w-full">
+              <table className="w-full min-w-[900px]">
                 <thead>
                   <tr className="border-b border-[#E5E5E5]">
                     {[
@@ -348,7 +348,7 @@ export default function PaymentsPage() {
             </div>
           ) : (
             <div className="overflow-x-auto">
-              <table className="w-full">
+              <table className="w-full min-w-[800px]">
                 <thead>
                   <tr className="border-b border-[#E5E5E5]">
                     {[
@@ -421,7 +421,7 @@ export default function PaymentsPage() {
           ))}
 
         {/* Pagination */}
-        <div className="px-4 py-3 border-t border-[#E5E5E5] flex items-center justify-between">
+        <div className="px-4 py-3 border-t border-[#E5E5E5] flex flex-col sm:flex-row items-center justify-between gap-2">
           <span className="text-sm text-slate-500">
             Showing{" "}
             {activeTab === "payments" ? payments.length : refunds.length} of{" "}

@@ -147,7 +147,7 @@ export default function SettingsPage() {
       )}
 
       {/* Payment Methods */}
-      <div className="bg-white rounded-[10px] border border-[#E5E5E5] p-6 space-y-4">
+      <div className="bg-white rounded-[10px] border border-[#E5E5E5] p-4 sm:p-6 space-y-4">
         <SectionHeader
           icon={CreditCard}
           iconColor="bg-blue-100 text-blue-600"
@@ -156,7 +156,7 @@ export default function SettingsPage() {
         />
 
         {/* Card */}
-        <div className="flex items-center justify-between py-4 border-b border-[#E5E5E5]">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 py-4 border-b border-[#E5E5E5]">
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 bg-blue-50 rounded-lg flex items-center justify-center">
               <CreditCard size={15} className="text-blue-500" />
@@ -191,7 +191,7 @@ export default function SettingsPage() {
         </div>
 
         {/* Cash */}
-        <div className="flex items-center justify-between py-4">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 py-4">
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 bg-green-50 rounded-lg flex items-center justify-center">
               <Banknote size={15} className="text-green-500" />
@@ -237,7 +237,7 @@ export default function SettingsPage() {
       </div>
 
       {/* Appointment Policies */}
-      <div className="bg-white rounded-[10px] border border-[#E5E5E5] p-6 space-y-4">
+      <div className="bg-white rounded-[10px] border border-[#E5E5E5] p-4 sm:p-6 space-y-4">
         <SectionHeader
           icon={RefreshCw}
           iconColor="bg-purple-100 text-purple-600"
@@ -246,7 +246,7 @@ export default function SettingsPage() {
         />
 
         {/* Cancellation Refund */}
-        <div className="flex items-center justify-between py-4 border-b border-[#E5E5E5]">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 py-4 border-b border-[#E5E5E5]">
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 bg-purple-50 rounded-lg flex items-center justify-center">
               <RefreshCw size={15} className="text-purple-500" />
@@ -279,7 +279,7 @@ export default function SettingsPage() {
       </div>
 
       {/* Save Bar */}
-      <div className="bg-white rounded-[10px] border border-[#E5E5E5] px-6 py-5 flex items-center justify-between">
+      <div className="bg-white rounded-[10px] border border-[#E5E5E5] px-4 sm:px-6 py-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
           <p className="text-sm font-semibold text-slate-900">
             Save Your Changes
@@ -288,11 +288,11 @@ export default function SettingsPage() {
             Changes will take effect immediately after saving
           </p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 w-full sm:w-auto">
           <button
             onClick={handleReset}
             disabled={!hasChanges}
-            className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-slate-700 border border-[#E5E5E5] rounded-lg hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed"
+            className="flex-1 sm:flex-initial flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium text-slate-700 border border-[#E5E5E5] rounded-lg hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed"
           >
             <RotateCcw size={14} />
             Reset
@@ -300,7 +300,7 @@ export default function SettingsPage() {
           <button
             onClick={handleSave}
             disabled={!hasChanges || saving}
-            className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-[#0066CC] rounded-lg hover:bg-[#0052a3] disabled:opacity-40 disabled:cursor-not-allowed"
+            className="flex-1 sm:flex-initial flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium text-white bg-[#0066CC] rounded-lg hover:bg-[#0052a3] disabled:opacity-40 disabled:cursor-not-allowed"
           >
             {saving ? (
               <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />

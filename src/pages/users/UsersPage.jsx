@@ -193,7 +193,7 @@ export default function UsersPage() {
 
       <div className="bg-white rounded-[10px] border border-[#E5E5E5] overflow-hidden">
         {/* Search & Filters */}
-        <div className="p-4 border-b border-[#E5E5E5] flex gap-3">
+        <div className="p-4 border-b border-[#E5E5E5] flex flex-col sm:flex-row gap-3">
           <div className="relative flex-1">
             <Search
               size={16}
@@ -375,7 +375,7 @@ export default function UsersPage() {
         </div>
 
         {/* Pagination */}
-        <div className="px-4 py-3 border-t border-[#E5E5E5] flex items-center justify-between bg-slate-50/30">
+        <div className="px-4 py-3 border-t border-[#E5E5E5] flex flex-col sm:flex-row items-center justify-between gap-2 bg-slate-50/30">
           <span className="text-sm text-slate-500">
             Showing {users.length} of {meta.total || 0} users
           </span>

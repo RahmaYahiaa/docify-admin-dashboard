@@ -17,6 +17,24 @@ import { toast } from "sonner";
 // ── Views ──
 // 'login' | 'forgot' | 'reset'
 
+// ── Helper: extract readable error message from any API error shape ──
+const parseApiError = (err, fallback) => {
+  const data = err.response?.data;
+  if (!data) return fallback;
+  // shape: { message: "string" }
+  if (typeof data.message === "string") return data.message;
+  // shape: { errors: { field: ["msg"] } }
+  if (data.errors && typeof data.errors === "object") {
+    const first = Object.values(data.errors)[0];
+    if (Array.isArray(first)) return first[0];
+  }
+  // shape: { password: ["msg"] } — flat validation object
+  const firstVal = Object.values(data)[0];
+  if (Array.isArray(firstVal)) return firstVal[0];
+  if (typeof firstVal === "string") return firstVal;
+  return fallback;
+};
+
 export default function LoginPage() {
   const navigate = useNavigate();
   const loginStore = useAuthStore((s) => s.login);
@@ -67,7 +85,9 @@ export default function LoginPage() {
       navigate("/dashboard", { replace: true });
     } catch (err) {
       console.error("Login Error Details:", err);
-      setError(err.response?.data?.message || "Failed to login");
+      setError(parseApiError(err, "Failed to login"));
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -94,9 +114,10 @@ export default function LoginPage() {
       setNewPassword("");
       setConfirmPassword("");
     } catch (err) {
-      setError(err.response?.data?.message || "Failed to reset password");
+      setError(parseApiError(err, "Failed to reset password"));
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   const handleKeyDown = (e) => {
@@ -124,7 +145,7 @@ export default function LoginPage() {
         </div>
 
         {/* Card */}
-        <div className="bg-white rounded-[10px] border border-[#E5E5E5] p-8">
+        <div className="bg-white rounded-[10px] border border-[#E5E5E5] p-6 sm:p-8">
           {/* ── LOGIN VIEW ── */}
           {view === "login" && (
             <div className="space-y-5">

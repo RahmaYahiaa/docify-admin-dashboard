@@ -122,7 +122,7 @@ export default function SpecialtiesPage() {
           title="Doctor Specialties"
           subtitle="Manage medical specialties available on the platform"
         />
-        <div className="grid grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {[...Array(6)].map((_, i) => (
             <div
               key={i}
@@ -144,23 +144,22 @@ export default function SpecialtiesPage() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <PageHeader
-        title="Doctor Specialties"
-        subtitle="Manage medical specialties available on the platform"
-        action={
-          <button
-            onClick={() => setShowAddForm(true)}
-            className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-[#0066CC] rounded-lg hover:bg-[#0052a3] transition-colors"
-          >
-            <Plus size={16} />
-            Add New Specialty
-          </button>
-        }
-      />
-
+{/* Header */}
+<PageHeader
+  title="Doctor Specialties"
+  subtitle="Manage medical specialties available on the platform"
+  action={
+    <button
+      onClick={() => setShowAddForm(true)}
+      className="flex items-center justify-center gap-2 w-full sm:w-auto px-4 py-2 text-sm font-medium text-white bg-[#0066CC] rounded-lg hover:bg-[#0052a3] transition-colors shrink-0"
+    >
+      <Plus size={16} />
+      Add New Specialty
+    </button>
+  }
+/>
       {/* Stats */}
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
         <StatsCard
           title="Total Specialties"
           value={stats.total ?? 0}
@@ -182,7 +181,7 @@ export default function SpecialtiesPage() {
       </div>
 
       {/* Grid */}
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {specialties.map((item) => (
           <div
             key={item.id}

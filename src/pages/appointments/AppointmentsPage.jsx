@@ -102,7 +102,7 @@ export default function AppointmentsPage() {
         subtitle="Monitor and manage all platform appointments"
       />
 
-      <div className="grid grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
         <StatsCard
           title="Total"
           value={stats.all ?? 0}
@@ -132,7 +132,7 @@ export default function AppointmentsPage() {
       {/* Table Card */}
       <div className="bg-white rounded-[10px] border border-[#E5E5E5]">
         {/* Top Bar */}
-        <div className="p-4 border-b border-[#E5E5E5] flex items-center justify-between gap-4">
+        <div className="p-4 border-b border-[#E5E5E5] flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <div className="relative flex-1 max-w-md">
             <Search
               size={16}
@@ -210,7 +210,7 @@ export default function AppointmentsPage() {
 
         {/* Tabs */}
         <div className="px-4 border-b border-[#E5E5E5]">
-          <div className="flex gap-6">
+          <div className="flex gap-6 overflow-x-auto no-scrollbar">
             {TABS.map((tab) => (
               <button
                 key={tab.value}
@@ -218,7 +218,7 @@ export default function AppointmentsPage() {
                   setActiveTab(tab.value);
                   setPage(1);
                 }}
-                className={`py-3 text-sm font-medium border-b-2 transition-colors ${
+                className={`py-3 text-sm font-medium border-b-2 whitespace-nowrap transition-colors ${
                   activeTab === tab.value
                     ? "border-[#0066CC] text-[#0066CC]"
                     : "border-transparent text-slate-500 hover:text-slate-700"
@@ -362,7 +362,7 @@ export default function AppointmentsPage() {
 
         {/* Footer + Pagination */}
         {meta.total > 0 && (
-          <div className="px-4 py-3 border-t border-[#E5E5E5] flex items-center justify-between">
+          <div className="px-4 py-3 border-t border-[#E5E5E5] flex flex-col sm:flex-row items-center justify-between gap-2">
             <span className="text-sm text-slate-500">
               Showing {appointments.length} of {meta.total || 0} appointments
             </span>

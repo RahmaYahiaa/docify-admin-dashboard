@@ -29,7 +29,7 @@ export default function PaymentDetailsModal({ payment, onClose }) {
 
   return (
     <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-[10px] w-[672px] max-h-[90vh] overflow-y-auto">
+      <div className="bg-white rounded-[10px] w-full max-w-[672px] max-h-[90vh] overflow-y-auto">
 
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-[#E5E5E5]">
@@ -76,7 +76,7 @@ export default function PaymentDetailsModal({ payment, onClose }) {
           </div>
 
           {/* Patient & Doctor */}
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="border border-[#E5E5E5] rounded-[10px] p-4">
               <div className="flex items-center gap-2 mb-2">
                 <User size={14} className="text-slate-400" />

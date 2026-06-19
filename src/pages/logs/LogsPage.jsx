@@ -267,7 +267,7 @@ export default function LogsPage() {
       />
 
       {/* Stats */}
-      <div className="grid grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
         <StatsCard
           title="Total Logs"
           value={
@@ -314,7 +314,7 @@ export default function LogsPage() {
       {/* Main Card */}
       <div className="bg-white rounded-[10px] border border-[#E5E5E5]">
         {/* Search + Filters Button */}
-        <div className="flex items-center gap-3 p-4 border-b border-[#E5E5E5]">
+        <div className="flex flex-col sm:flex-row gap-3 p-4 border-b border-[#E5E5E5]">
           <div className="relative flex-1">
             <Search
               size={16}
@@ -351,7 +351,7 @@ export default function LogsPage() {
         {/* Filters */}
         {showFilters && (
           <div className="px-6 py-5 border-b border-[#E5E5E5] bg-slate-50/50">
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               {/* Action Type */}
               <div>
                 <label className="text-xs font-medium text-slate-600">
@@ -423,7 +423,8 @@ export default function LogsPage() {
         ) : (
           <>
             {/* Table */}
-            <table className="w-full">
+            <div className="overflow-x-auto">
+            <table className="w-full min-w-[700px]">
               <thead>
                 <tr className="border-b border-[#E5E5E5]">
                   {[
@@ -557,9 +558,10 @@ export default function LogsPage() {
                 )}
               </tbody>
             </table>
+            </div>
 
             {/* Footer */}
-            <div className="flex items-center justify-between px-4 py-4 border-t border-[#E5E5E5]">
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-2 px-4 py-4 border-t border-[#E5E5E5]">
               <span className="text-sm text-slate-500">
                 Showing{' '}
                 {paginatedLogs.length} of{' '}

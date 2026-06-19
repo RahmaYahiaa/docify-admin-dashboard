@@ -134,7 +134,7 @@ export default function DoctorVerificationDetailsPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div className="flex items-center gap-3">
           <button
             onClick={() => navigate("/doctor-verification")}
@@ -206,9 +206,9 @@ export default function DoctorVerificationDetailsPage() {
       </div>
 
       {/* Content Grid */}
-      <div className="grid grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Left — Doctor Info (2 cols) */}
-        <div className="col-span-2 space-y-6">
+        <div className="lg:col-span-2 space-y-6">
           {/* Basic Info Card */}
           <div className="bg-white rounded-[10px] border border-[#E5E5E5] p-6">
             <h2 className="text-sm font-semibold text-slate-900 mb-4">
@@ -297,14 +297,14 @@ export default function DoctorVerificationDetailsPage() {
                   key={index}
                   className="flex items-center justify-between p-3 border border-[#E5E5E5] rounded-lg"
                 >
-                  <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 bg-red-50 rounded-lg flex items-center justify-center">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className="w-8 h-8 bg-red-50 rounded-lg flex items-center justify-center shrink-0">
                       <span className="text-xs font-bold text-red-500">
                         IMG
                       </span>
                     </div>
-                    <div>
-                      <p className="text-sm font-medium text-slate-900">
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium text-slate-900 truncate">
                         {cert.name}
                       </p>
                       <p className="text-xs text-slate-400">
@@ -317,7 +317,7 @@ export default function DoctorVerificationDetailsPage() {
                     download
                     target="_blank"
                     rel="noreferrer"
-                    className="p-1.5 hover:bg-slate-100 rounded-lg transition-colors"
+                    className="p-1.5 hover:bg-slate-100 rounded-lg transition-colors shrink-0"
                   >
                     <Download size={16} className="text-slate-500" />
                   </a>

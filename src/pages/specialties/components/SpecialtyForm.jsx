@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { X, Upload, ImageIcon } from "lucide-react";
+import { X, Upload } from "lucide-react";
 import { toast } from "sonner";
 
 export default function SpecialtyForm({
@@ -10,28 +10,23 @@ export default function SpecialtyForm({
 }) {
   const isEdit = !!specialty;
 
-  // Form field state
   const [name, setName] = useState(specialty?.name || "");
   const [description, setDescription] = useState(specialty?.description || "");
   const [imageFile, setImageFile] = useState(null);
   const [previewUrl, setPreviewUrl] = useState(specialty?.image || null);
+  const [imageRemoved, setImageRemoved] = useState(false);
 
-  // ------------------------------------------------------------------
-  // Image selection
-  // ------------------------------------------------------------------
   const handleImageChange = (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    // Revoke previous object URL to avoid memory leaks
     if (previewUrl && previewUrl.startsWith("blob:")) {
       URL.revokeObjectURL(previewUrl);
     }
 
     setImageFile(file);
     setPreviewUrl(URL.createObjectURL(file));
-
-    // Reset the input so the same file can be selected again if needed
+    setImageRemoved(false);
     e.target.value = "";
   };
 
@@ -40,36 +35,32 @@ export default function SpecialtyForm({
       URL.revokeObjectURL(previewUrl);
     }
     setImageFile(null);
-    setPreviewUrl(specialty?.icon_url || null);
+    setPreviewUrl(null);
+    setImageRemoved(true);
   };
 
-  // ------------------------------------------------------------------
-  // Submit validation and call parent
-  // ------------------------------------------------------------------
   const handleSubmit = () => {
     if (!name.trim()) {
       toast.error("Specialty name is required");
       return;
     }
 
-    // For a NEW specialty require an image
     if (!isEdit && !imageFile) {
       toast.error("Please upload an image for the specialty");
       return;
     }
 
-    // Pass raw values — parent (SpecialtiesPage) builds FormData
     onSave({
       name: name.trim(),
       description: description.trim(),
-      image: imageFile, // File | null
+      image: imageFile,
+      imageRemoved: imageRemoved,
     });
   };
 
   return (
     <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-[10px] w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-        {/* ── Header ── */}
         <div className="flex items-start justify-between p-4 sm:p-6 border-b border-[#E5E5E5]">
           <div>
             <h2 className="text-xl font-bold text-slate-900">
@@ -89,9 +80,7 @@ export default function SpecialtyForm({
           </button>
         </div>
 
-        {/* ── Fields ── */}
         <div className="p-4 sm:p-6 space-y-5">
-          {/* Name */}
           <div className="space-y-1.5">
             <label className="text-sm font-medium text-slate-700">
               Specialty Name <span className="text-red-500">*</span>
@@ -105,7 +94,6 @@ export default function SpecialtyForm({
             />
           </div>
 
-          {/* Description */}
           <div className="space-y-1.5">
             <label className="text-sm font-medium text-slate-700">
               Description
@@ -122,7 +110,6 @@ export default function SpecialtyForm({
             />
           </div>
 
-          {/* Image */}
           <div className="space-y-1.5">
             <label className="text-sm font-medium text-slate-700">
               Specialty Image
@@ -135,7 +122,6 @@ export default function SpecialtyForm({
             </label>
 
             {previewUrl ? (
-              /* ── Preview ── */
               <div className="relative rounded-lg overflow-hidden border border-[#E5E5E5]">
                 <img
                   src={previewUrl}
@@ -146,9 +132,7 @@ export default function SpecialtyForm({
                   }}
                 />
 
-                {/* Overlay controls */}
                 <div className="absolute inset-0 bg-black/0 hover:bg-black/30 transition-colors flex items-center justify-center gap-2 opacity-0 hover:opacity-100">
-                  {/* Change image — re-opens picker */}
                   <label className="px-3 py-1.5 bg-white rounded-lg text-xs font-medium text-slate-700 cursor-pointer hover:bg-slate-100 transition-colors">
                     Change Image
                     <input
@@ -158,8 +142,8 @@ export default function SpecialtyForm({
                       onChange={handleImageChange}
                     />
                   </label>
-                  {/* Remove image */}
                   <button
+                    type="button"
                     onClick={handleRemoveImage}
                     className="px-3 py-1.5 bg-red-500 text-white rounded-lg text-xs font-medium hover:bg-red-600 transition-colors"
                   >
@@ -167,8 +151,8 @@ export default function SpecialtyForm({
                   </button>
                 </div>
 
-                {/* Small X button in corner */}
                 <button
+                  type="button"
                   onClick={handleRemoveImage}
                   className="absolute top-2 right-2 w-7 h-7 bg-white rounded-full flex items-center justify-center shadow border border-[#E5E5E5] hover:bg-slate-50"
                 >
@@ -176,7 +160,6 @@ export default function SpecialtyForm({
                 </button>
               </div>
             ) : (
-              /* ── Upload dropzone ── */
               <label className="flex flex-col items-center justify-center gap-2 border-2 border-dashed border-[#E5E5E5] rounded-lg h-40 cursor-pointer hover:border-[#0066CC] transition-colors group">
                 <div className="w-10 h-10 rounded-full bg-slate-100 group-hover:bg-blue-50 flex items-center justify-center transition-colors">
                   <Upload
@@ -201,9 +184,9 @@ export default function SpecialtyForm({
           </div>
         </div>
 
-        {/* ── Footer ── */}
         <div className="flex items-center justify-end gap-3 px-4 sm:px-6 py-4 border-t border-[#E5E5E5]">
           <button
+            type="button"
             onClick={onClose}
             disabled={loading}
             className="px-4 py-2 text-sm font-medium text-slate-700 border border-[#E5E5E5] rounded-lg hover:bg-slate-50 disabled:opacity-50"
@@ -211,6 +194,7 @@ export default function SpecialtyForm({
             Cancel
           </button>
           <button
+            type="button"
             onClick={handleSubmit}
             disabled={loading}
             className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-[#0066CC] rounded-lg hover:bg-[#0052a3] disabled:opacity-60 disabled:cursor-not-allowed transition-colors"

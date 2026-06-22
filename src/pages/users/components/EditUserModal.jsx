@@ -29,16 +29,20 @@ function resolveStatus(user) {
 }
 
 function resolveSpecialtyName(user) {
-  if (user?.user?.specialty) return user.user.specialty;
-  return (
-    user?.specialty ||
-    user?.specialization?.name ||
-    user?.specialization_name ||
-    ""
-  );
+  const spec = user?.user?.specialty || user?.specialty || user?.specialization;
+  if (!spec) return user?.specialization_name || "";
+  
+  if (typeof spec === "object") {
+    if (spec.name) {
+      return typeof spec.name === "object" 
+        ? spec.name.en || spec.name.ar 
+        : spec.name;
+    }
+    return spec.en || spec.ar || "";
+  }
+  return spec;
 }
 
-// Returns the specialty id when available in the row
 function resolveSpecialtyId(user) {
   return user?.specialization_id ?? user?.specialization?.id ?? null;
 }
@@ -69,7 +73,6 @@ export default function EditUserModal({
 
   const { data: specs = [], isLoading: specLoading } = useSpecializations();
 
-  //  Seed form whenever user changes
   useEffect(() => {
     if (!user) return;
 
@@ -96,21 +99,22 @@ export default function EditUserModal({
 
   useEffect(() => {
     if (!specs.length || !specSearch || specializationId) return;
-    const match = specs.find(
-      (s) => (s?.name || "").toLowerCase() === specSearch.toLowerCase(),
-    );
+    const match = specs.find((s) => {
+      const nameStr = typeof s?.name === "object" ? s.name.en || s.name.ar : s?.name;
+      return (nameStr || "").toLowerCase() === specSearch.toLowerCase();
+    });
     if (match) {
-      setSelectedSpec({ id: match.id, name: match.name });
+      const nameStr = typeof match.name === "object" ? match.name.en || match.name.ar : match.name;
+      setSelectedSpec({ id: match.id, name: nameStr });
       setSpecializationId(String(match.id));
     }
   }, [specs, specSearch, specializationId]);
 
-  //  Filtered dropdown list
-  const filteredSpecs = specs.filter((s) =>
-    (s?.name || "").toLowerCase().includes(specSearch.toLowerCase()),
-  );
+  const filteredSpecs = specs.filter((s) => {
+    const nameStr = typeof s?.name === "object" ? s.name.en || s.name.ar : s?.name;
+    return (nameStr || "").toLowerCase().includes(specSearch.toLowerCase());
+  });
 
-  //  Submit
   const handleSave = () => {
     if (!firstName.trim()) {
       toast.error("First name is required");
@@ -231,10 +235,10 @@ export default function EditUserModal({
             </div>
           </section>
 
-          {/* Doctor specialization */}
+          {/* Doctor specialization (Activated) */}
           {role === "doctor" && (
             <section className="space-y-4">
-              {/* <h3 className="text-sm font-semibold text-slate-900">
+              <h3 className="text-sm font-semibold text-slate-900">
                 Doctor Information
               </h3>
 
@@ -272,29 +276,32 @@ export default function EditUserModal({
                     !selectedSpec &&
                     filteredSpecs.length > 0 && (
                       <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-[#E5E5E5] rounded-lg shadow-lg z-20 max-h-48 overflow-y-auto">
-                        {filteredSpecs.slice(0, 8).map((spec) => (
-                          <button
-                            key={spec.id}
-                            type="button"
-                            onMouseDown={(e) => e.preventDefault()}
-                            onClick={() => {
-                              setSelectedSpec(spec);
-                              setSpecSearch(spec.name);
-                              setSpecializationId(String(spec.id));
-                              setShowSpecDrop(false);
-                            }}
-                            className="w-full px-4 py-2.5 text-left hover:bg-slate-50 border-b border-[#F5F5F5] last:border-0"
-                          >
-                            <p className="text-sm font-medium text-slate-900">
-                              {spec.name}
-                            </p>
-                            {spec.description && (
-                              <p className="text-xs text-slate-400 truncate">
-                                {spec.description}
+                        {filteredSpecs.slice(0, 8).map((spec) => {
+                          const nameStr = typeof spec.name === "object" ? spec.name.en || spec.name.ar : spec.name;
+                          return (
+                            <button
+                              key={spec.id}
+                              type="button"
+                              onMouseDown={(e) => e.preventDefault()}
+                              onClick={() => {
+                                setSelectedSpec({ id: spec.id, name: nameStr });
+                                setSpecSearch(nameStr);
+                                setSpecializationId(String(spec.id));
+                                setShowSpecDrop(false);
+                              }}
+                              className="w-full px-4 py-2.5 text-left hover:bg-slate-50 border-b border-[#F5F5F5] last:border-0"
+                            >
+                              <p className="text-sm font-medium text-slate-900">
+                                {nameStr}
                               </p>
-                            )}
-                          </button>
-                        ))}
+                              {spec.description && (
+                                <p className="text-xs text-slate-400 truncate">
+                                  {spec.description}
+                                </p>
+                              )}
+                            </button>
+                          );
+                        })}
                       </div>
                     )}
 
@@ -311,7 +318,7 @@ export default function EditUserModal({
                 </div>
 
                 {selectedSpec && (
-                  <div className="flex items-center gap-2 bg-blue-50 border border-blue-200 rounded-lg px-3 py-2">
+                  <div className="flex items-center gap-2 bg-blue-50 border border-blue-200 rounded-lg px-3 py-2 mt-2">
                     <span className="text-sm text-blue-700 font-medium">
                       {selectedSpec.name}
                     </span>
@@ -328,7 +335,7 @@ export default function EditUserModal({
                     </button>
                   </div>
                 )}
-              </div> */}
+              </div>
             </section>
           )}
 

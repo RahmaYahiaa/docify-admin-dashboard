@@ -28,10 +28,30 @@ export default function SpecialtiesPage() {
   const { mutate: activateSpecialty } = useActivateSpecialty();
   const { mutate: disableSpecialty } = useDisableSpecialty();
 
-  const specialties = data?.specialties || [];
   const stats = data?.stats || {};
 
-  // Handles absolute and relative paths
+  const specialties = (data?.specialties || []).map((item) => {
+    const spec = item?.specialty || item;
+
+    let finalName = "Unknown";
+    if (spec?.name) {
+      if (typeof spec.name === "object") {
+        finalName = spec.name.en || spec.name.ar || "Unknown";
+      } else if (typeof spec.name === "string") {
+        finalName = spec.name;
+      }
+    }
+
+    return {
+      id: spec?.id || item?.id,
+      name: finalName,
+      icon_url: spec?.icon_url || item?.image || item?.icon_url,
+      description: item?.description || spec?.description,
+      status: item?.status || spec?.status || "active",
+      doctors_count: item?.doctors_count ?? spec?.doctors_count ?? 0,
+    };
+  });
+
   const getImageUrl = (url) => {
     if (!url) return "/images/default-specialization.png";
     return url.startsWith("http") ? url : `${BASE_URL}${url}`;
@@ -40,19 +60,23 @@ export default function SpecialtiesPage() {
   const handleSave = (form) => {
     const formData = new FormData();
 
-    if (form.name?.trim()) {
-      formData.append("name", form.name.trim());
-    }
-
     if (form.description?.trim()) {
       formData.append("description", form.description.trim());
     }
 
     if (form.image instanceof File) {
       formData.append("icon_url", form.image);
+    } else if (form.imageRemoved) {
+      formData.append("icon_url", "");
     }
 
     if (editSpecialty) {
+      if (form.name?.trim()) {
+        formData.append("name", form.name.trim());
+      }
+      
+      formData.append("_method", "PUT");
+
       updateSpecialty(
         {
           id: editSpecialty.id,
@@ -63,20 +87,34 @@ export default function SpecialtiesPage() {
             toast.success("Specialty updated successfully!");
             setEditSpecialty(null);
           },
-
           onError: (err) => {
+            console.error("Validation Error Details:", err?.response?.data);
+            const errors = err?.response?.data?.errors;
+            let errorMsg = "";
+            
+            if (errors && typeof errors === "object") {
+              errorMsg = Object.entries(errors)
+                .map(([key, val]) => `${key}: ${Array.isArray(val) ? val[0] : val}`)
+                .join(" | ");
+            }
+
             const msg =
+              errorMsg ||
               err?.response?.data?.message ||
               err?.response?.data?.error ||
-              Object.values(err?.response?.data?.errors || {})[0]?.[0] ||
               "Failed to update specialty";
-
-            toast.error(msg);
+              
+            toast.error(msg, { duration: 5000 });
           },
         },
       );
     } else {
-      // CREATE
+      if (form.name?.trim()) {
+        const trimmedName = form.name.trim();
+        formData.append("name[en]", trimmedName);
+        formData.append("name[ar]", trimmedName);
+      }
+
       if (!(form.image instanceof File)) {
         toast.error("Please upload specialty image");
         return;
@@ -87,15 +125,22 @@ export default function SpecialtiesPage() {
           toast.success("Specialty created successfully!");
           setShowAddForm(false);
         },
-
         onError: (err) => {
+          const errors = err?.response?.data?.errors;
+          let errorMsg = "";
+          
+          if (errors && typeof errors === "object") {
+            errorMsg = Object.entries(errors)
+              .map(([key, val]) => `${key}: ${Array.isArray(val) ? val[0] : val}`)
+              .join(" | ");
+          }
+
           const msg =
+            errorMsg ||
             err?.response?.data?.message ||
             err?.response?.data?.error ||
-            Object.values(err?.response?.data?.errors || {})[0]?.[0] ||
             "Failed to create specialty";
-
-          toast.error(msg);
+          toast.error(msg, { duration: 5000 });
         },
       });
     }
@@ -144,21 +189,20 @@ export default function SpecialtiesPage() {
 
   return (
     <div className="space-y-6">
-{/* Header */}
-<PageHeader
-  title="Doctor Specialties"
-  subtitle="Manage medical specialties available on the platform"
-  action={
-    <button
-      onClick={() => setShowAddForm(true)}
-      className="flex items-center justify-center gap-2 w-full sm:w-auto px-4 py-2 text-sm font-medium text-white bg-[#0066CC] rounded-lg hover:bg-[#0052a3] transition-colors shrink-0"
-    >
-      <Plus size={16} />
-      Add New Specialty
-    </button>
-  }
-/>
-      {/* Stats */}
+      <PageHeader
+        title="Doctor Specialties"
+        subtitle="Manage medical specialties available on the platform"
+        action={
+          <button
+            onClick={() => setShowAddForm(true)}
+            className="flex items-center justify-center gap-2 w-full sm:w-auto px-4 py-2 text-sm font-medium text-white bg-[#0066CC] rounded-lg hover:bg-[#0052a3] transition-colors shrink-0"
+          >
+            <Plus size={16} />
+            Add New Specialty
+          </button>
+        }
+      />
+
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
         <StatsCard
           title="Total Specialties"
@@ -180,14 +224,12 @@ export default function SpecialtiesPage() {
         />
       </div>
 
-      {/* Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {specialties.map((item) => (
           <div
             key={item.id}
             className="bg-white rounded-[10px] border border-[#E5E5E5] overflow-hidden"
           >
-            {/* Thumbnail */}
             <div className="relative">
               <img
                 src={getImageUrl(item.icon_url)}
@@ -206,7 +248,6 @@ export default function SpecialtiesPage() {
               )}
             </div>
 
-            {/* Info */}
             <div className="p-4">
               <div className="flex items-center justify-between mb-1">
                 <h3 className="font-semibold text-slate-900">{item.name}</h3>
@@ -220,7 +261,6 @@ export default function SpecialtiesPage() {
                 {item.doctors_count} doctors
               </div>
 
-              {/* Actions */}
               <div className="flex items-center justify-between pt-3 border-t border-[#E5E5E5]">
                 <button
                   onClick={() => setEditSpecialty(item)}
@@ -253,7 +293,6 @@ export default function SpecialtiesPage() {
         ))}
       </div>
 
-      {/* Add Modal */}
       {showAddForm && (
         <SpecialtyForm
           onClose={() => setShowAddForm(false)}
@@ -262,7 +301,6 @@ export default function SpecialtiesPage() {
         />
       )}
 
-      {/* Edit Modal */}
       {editSpecialty && (
         <SpecialtyForm
           specialty={{
@@ -276,7 +314,6 @@ export default function SpecialtiesPage() {
         />
       )}
 
-      {/* Disable Confirm Modal */}
       {disableTarget && (
         <DisableSpecialtyModal
           specialty={{ name: disableTarget.name }}

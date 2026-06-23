@@ -54,14 +54,24 @@ export default function AddUserModal({ onClose, onSave, loading = false }) {
     admin_level: "admin",
   });
 
-  //  fetch real specializations from API
   const { data: specializations = [], isLoading: specLoading } =
     useSpecializations();
 
-  const filteredSpecs = specializations.filter((s) =>
-    (s?.name || "").toLowerCase().includes(specializationSearch.toLowerCase()),
-  );
-  // ─────────────────────────────────────────────────────────────────────
+  const filteredSpecs = (
+    Array.isArray(specializations) ? specializations : []
+  ).filter((s) => {
+    let nameString = "";
+    if (s?.name) {
+      if (typeof s.name === "object") {
+        nameString = s.name.en || s.name.ar || "";
+      } else {
+        nameString = String(s.name);
+      }
+    }
+    return nameString
+      .toLowerCase()
+      .includes((specializationSearch || "").toLowerCase());
+  });
 
   const handleChange = (key) => (e) => {
     setForm((prev) => ({ ...prev, [key]: e.target.value }));
@@ -90,15 +100,15 @@ export default function AddUserModal({ onClose, onSave, loading = false }) {
   const validateForm = () => {
     const newErrors = {};
 
-    if (!form.first_name.trim())
+    if (!form.first_name?.trim())
       newErrors.first_name = "First name is required";
-    if (!form.last_name.trim()) newErrors.last_name = "Last name is required";
-    if (!form.email.trim()) {
+    if (!form.last_name?.trim()) newErrors.last_name = "Last name is required";
+    if (!form.email?.trim()) {
       newErrors.email = "Email is required";
     } else if (!/^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i.test(form.email)) {
       newErrors.email = "Invalid email address";
     }
-    if (!form.phone.trim()) {
+    if (!form.phone?.trim()) {
       newErrors.phone = "Phone number is required";
     }
 
@@ -125,6 +135,14 @@ export default function AddUserModal({ onClose, onSave, loading = false }) {
     onSave({ ...form, role: selectedRole });
   };
 
+  const getSpecName = (spec) => {
+    if (!spec?.name) return "";
+    if (typeof spec.name === "object") {
+      return spec.name.en || spec.name.ar || "";
+    }
+    return String(spec.name);
+  };
+
   return (
     <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-[10px] w-full max-w-lg max-h-[90vh] overflow-y-auto shadow-xl">
@@ -148,7 +166,7 @@ export default function AddUserModal({ onClose, onSave, loading = false }) {
           </button>
         </div>
 
-        {/*  Step 1: Role Selection  */}
+        {/* Step 1: Role Selection */}
         {step === 1 && (
           <div className="p-5">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -188,7 +206,7 @@ export default function AddUserModal({ onClose, onSave, loading = false }) {
           </div>
         )}
 
-        {/*  Step 2: Form  */}
+        {/* Step 2: Form */}
         {step === 2 && (
           <div className="p-5 space-y-5">
             {/* Basic Info */}
@@ -286,7 +304,7 @@ export default function AddUserModal({ onClose, onSave, loading = false }) {
               </p>
             </div>
 
-            {/*  Doctor Section  */}
+            {/* Doctor Section */}
             {selectedRole === "Doctor" && (
               <section className="space-y-4">
                 <h3 className="text-sm font-semibold text-slate-900">
@@ -305,7 +323,6 @@ export default function AddUserModal({ onClose, onSave, loading = false }) {
                       onChange={(e) => {
                         setSpecializationSearch(e.target.value);
                         setShowSpecializations(true);
-                        // clear selection when user types again
                         if (selectedSpecialization) {
                           setSelectedSpecialization(null);
                           setForm((p) => ({ ...p, specialization_id: "" }));
@@ -314,7 +331,6 @@ export default function AddUserModal({ onClose, onSave, loading = false }) {
                       }}
                       onFocus={() => setShowSpecializations(true)}
                       onBlur={() =>
-                        // small delay so click inside list registers first
                         setTimeout(() => setShowSpecializations(false), 150)
                       }
                       placeholder={
@@ -355,7 +371,7 @@ export default function AddUserModal({ onClose, onSave, loading = false }) {
                                   ...p,
                                   specialization_id: spec.id,
                                 }));
-                                setSpecializationSearch(spec.name);
+                                setSpecializationSearch(getSpecName(spec));
                                 setShowSpecializations(false);
                                 setErrors((p) => ({
                                   ...p,
@@ -365,11 +381,15 @@ export default function AddUserModal({ onClose, onSave, loading = false }) {
                               className="w-full px-4 py-2.5 text-left hover:bg-slate-50 transition-colors border-b border-[#F5F5F5] last:border-0"
                             >
                               <p className="text-sm font-medium text-slate-900">
-                                {spec.name}
+                                {getSpecName(spec)}
                               </p>
                               {spec.description && (
                                 <p className="text-xs text-slate-400 mt-0.5 truncate">
-                                  {spec.description}
+                                  {typeof spec.description === "object"
+                                    ? spec.description.en ||
+                                      spec.description.ar ||
+                                      ""
+                                    : spec.description}
                                 </p>
                               )}
                             </button>
@@ -383,7 +403,7 @@ export default function AddUserModal({ onClose, onSave, loading = false }) {
                   {selectedSpecialization && (
                     <div className="flex items-center gap-2 bg-blue-50 border border-blue-200 rounded-lg px-3 py-2">
                       <span className="text-sm text-blue-700 font-medium">
-                        {selectedSpecialization.name}
+                        {getSpecName(selectedSpecialization)}
                       </span>
                       <button
                         type="button"
@@ -485,7 +505,7 @@ export default function AddUserModal({ onClose, onSave, loading = false }) {
               </section>
             )}
 
-            {/*  Admin Section  */}
+            {/* Admin Section */}
             {selectedRole === "Admin" && (
               <section className="space-y-4">
                 <h3 className="text-sm font-semibold text-slate-900">

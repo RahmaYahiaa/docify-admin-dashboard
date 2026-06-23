@@ -13,7 +13,7 @@ import UsersPage from '@/pages/users/UsersPage'
 import AppointmentsPage from '@/pages/appointments/AppointmentsPage'
 import PaymentsPage from '@/pages/payments/PaymentsPage'
 import LogsPage from '@/pages/logs/LogsPage'
-import SettingsPage from '@/pages/settings/SettingsPage'
+// import SettingsPage from '@/pages/settings/SettingsPage'
 
 function ProtectedLayout() {
   return (
@@ -43,7 +43,7 @@ export default function App() {
           <Route path="/appointments" element={<AppointmentsPage />} />
           <Route path="/payments" element={<PaymentsPage />} />
           <Route path="/logs" element={<LogsPage />} />
-          <Route path="/settings" element={<SettingsPage />} />
+          {/* <Route path="/settings" element={<SettingsPage />} /> */}
         </Route>
 
         {/* Fallback */}

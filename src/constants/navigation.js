@@ -45,9 +45,9 @@ export const NAV_ITEMS = [
     path: '/logs',
     icon: ClipboardList,
   },
-  {
-    label: 'Settings',
-    path: '/settings',
-    icon: Settings,
-  },
+  // {
+  //   label: 'Settings',
+  //   path: '/settings',
+  //   icon: Settings,
+  // },
 ]

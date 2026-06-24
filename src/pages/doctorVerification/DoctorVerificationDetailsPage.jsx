@@ -30,17 +30,17 @@ export default function DoctorVerificationDetailsPage() {
   const doctor = rawDoctor
     ? {
         id: rawDoctor["basic info"]?.id,
-        name: rawDoctor["basic info"]?.name || "—",
-        phone: rawDoctor["basic info"]?.phone || "—",
-        specialty: rawDoctor["basic info"]?.specialty || "—",
+        name: rawDoctor["basic info"]?.name || "",
+        phone: rawDoctor["basic info"]?.phone || "",
+        specialty: rawDoctor["basic info"]?.specialty || "",
         profile_picture: rawDoctor["basic info"]?.profile_picture || null,
-        email: rawDoctor.email || "—",
-        address: rawDoctor.address || "—",
+        email: rawDoctor.email || "",
+        address: rawDoctor.address || "",
         status: rawDoctor.status || "pending",
-        about: rawDoctor.about || "—",
+        about: rawDoctor.about || "",
         yearsOfExperience:
           rawDoctor.professional_details?.experience_years ?? null,
-        submissionDate: rawDoctor.submission_info?.submitted_at || "—",
+        submissionDate: rawDoctor.submission_info?.submitted_at || "",
         certificates: rawDoctor.uploaded_certificate
           ? [rawDoctor.uploaded_certificate]
           : [],
@@ -232,7 +232,7 @@ export default function DoctorVerificationDetailsPage() {
               <div>
                 <p className="font-semibold text-slate-900">{doctor.name}</p>
                 <p className="text-sm text-slate-500">
-                  {doctor.specialty || "—"}
+                  {doctor.specialty || ""}
                 </p>
               </div>
             </div>

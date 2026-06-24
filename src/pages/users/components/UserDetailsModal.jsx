@@ -1,4 +1,4 @@
-import { X, User, Stethoscope, Shield, Clock, Edit } from "lucide-react";
+import { X, User, Shield, Clock, Edit } from "lucide-react";
 import StatusBadge from "@/components/shared/StatusBadge";
 import RoleBadge from "@/components/shared/RoleBadge";
 
@@ -15,7 +15,9 @@ function Field({ label, value, colSpan = 1, blue = false }) {
   const valCls = blue ? "text-blue-700" : "text-slate-900";
 
   return (
-    <div className={`${bg} rounded-lg p-3 ${colSpan === 2 ? "col-span-2" : ""}`}>
+    <div
+      className={`${bg} rounded-lg p-3 ${colSpan === 2 ? "col-span-2" : ""}`}
+    >
       <p className={`text-xs ${lbCls} mb-1 uppercase tracking-wide`}>{label}</p>
       <p className={`text-sm font-medium ${valCls} break-all`}>
         {value || <span className="italic text-slate-300">—</span>}
@@ -34,11 +36,6 @@ export default function UserDetailsModal({ user: rawUser, onClose, onEdit }) {
     name: rawUser.user?.name || rawUser.name || "",
     first_name: rawUser.first_name || "",
     last_name: rawUser.last_name || "",
-    specialty:
-      rawUser.user?.specialty ||
-      rawUser.specialty ||
-      rawUser.specialization_name ||
-      rawUser.specialization?.name,
     email: rawUser.contact?.email || rawUser.email,
     phone: rawUser.contact?.phone || rawUser.phone,
     lastLogin: rawUser.last_login || rawUser.lastLogin,
@@ -47,9 +44,7 @@ export default function UserDetailsModal({ user: rawUser, onClose, onEdit }) {
     adminLevel: rawUser.admin_level || rawUser.adminLevel,
   };
 
-  const isDoctor = isRole(user.role, "doctor");
   const isAdmin = isRole(user.role, "admin", "super admin");
-  const isAssistant = isRole(user.role, "assistant");
 
   // Full Name resolution
   const fullName =
@@ -118,22 +113,6 @@ export default function UserDetailsModal({ user: rawUser, onClose, onEdit }) {
               <Field label="Phone" value={user.phone} />
             </div>
           </section>
-
-          {/* DOCTOR INFO */}
-          {isDoctor && (
-            <section>
-              <div className="flex items-center gap-2 mb-3">
-                <Stethoscope size={14} className="text-blue-500" />
-                <h3 className="text-sm font-semibold text-blue-700">
-                  Doctor Information
-                </h3>
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <Field label="Specialty" value={user.specialty} blue />
-              </div>
-            </section>
-          )}
 
           {/* ADMIN INFO */}
           {isAdmin && (

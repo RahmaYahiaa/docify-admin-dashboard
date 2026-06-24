@@ -15,6 +15,7 @@ import PageHeader from "@/components/shared/PageHeader";
 import StatsCard from "@/components/shared/StatsCard";
 import { useAppointments } from "@/hooks/useAppointments";
 import { formatAppointmentId, formatStatus } from "@/utils/formatters";
+import AppointmentDetailsModal from "./components/AppointmentDetailsModal";
 
 const TABS = [
   { label: "All", value: "", countKey: "all" },
@@ -42,19 +43,23 @@ const STATUS_STYLES = {
 const PAYMENT_STYLES = {
   paid: "text-green-600 bg-green-50",
   pending: "text-orange-500 bg-orange-50",
+  cash: "text-indigo-600 bg-indigo-50", // الاستايل الخاص بالدفع الكاش
   refunded: "text-blue-600 bg-blue-50",
   failed: "text-red-600 bg-red-50",
-  not_applicable: "text-slate-500 bg-slate-100", 
+  not_applicable: "text-slate-500 bg-slate-100",
 };
 
 function StatusBadge({ status, styles }) {
   const style = styles[status] || "text-slate-600 bg-slate-100";
+
+  const displayTxt = status === "cash" ? "Cash" : formatStatus(status);
+
   return (
     <span
       className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium ${style}`}
     >
       <span className="w-1.5 h-1.5 rounded-full bg-current" />
-      {formatStatus(status)}
+      {displayTxt}
     </span>
   );
 }
@@ -281,11 +286,15 @@ export default function AppointmentsPage() {
               </thead>
               <tbody>
                 {appointments.map((apt) => {
-                
-
                   let displayPaymentStatus = apt.payment_status;
+
                   if (apt.status === "cancelled" && !apt.payment_status) {
                     displayPaymentStatus = "not_applicable";
+                  } else if (
+                    apt.type === "in_person" &&
+                    (!apt.payment_status || apt.payment_status === "pending")
+                  ) {
+                    displayPaymentStatus = "cash";
                   }
 
                   return (
@@ -305,9 +314,9 @@ export default function AppointmentsPage() {
                         <p className="text-sm font-medium text-slate-900">
                           {apt.doctor}
                         </p>
-                         <p className="text-xs text-slate-400">
-                        {apt.specialty ? apt.specialty : "General Medicine"}
-                      </p>
+                        <p className="text-xs text-slate-400">
+                          {apt.specialty ? apt.specialty : "General Medicine"}
+                        </p>
                       </td>
                       <td className="px-4 py-4 whitespace-nowrap">
                         <p className="text-sm text-slate-900">{apt.date}</p>
@@ -388,6 +397,13 @@ export default function AppointmentsPage() {
           </div>
         )}
       </div>
+
+      {viewAppointment && (
+        <AppointmentDetailsModal
+          appointment={viewAppointment}
+          onClose={() => setViewAppointment(null)}
+        />
+      )}
     </div>
   );
 }

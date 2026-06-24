@@ -1,50 +1,71 @@
-import { X, User, Stethoscope, Video, MapPin, DollarSign } from 'lucide-react'
-import { formatAppointmentId, formatStatus } from '@/utils/formatters'
+import { X, User, Stethoscope, Video, MapPin, DollarSign } from "lucide-react";
+import { formatAppointmentId, formatStatus } from "@/utils/formatters";
 
 const STATUS_STYLES = {
-  confirmed:  'text-blue-600 bg-blue-50',
-  completed:  'text-green-600 bg-green-50',
-  cancelled:  'text-red-600 bg-red-50',
-  no_show:    'text-slate-600 bg-slate-100',
-}
+  confirmed: "text-blue-600 bg-blue-50",
+  completed: "text-green-600 bg-green-50",
+  cancelled: "text-red-600 bg-red-50",
+  no_show: "text-slate-600 bg-slate-100",
+};
 
 const PAYMENT_STYLES = {
-  paid:     'text-green-600 bg-green-50',
-  pending:  'text-orange-600 bg-orange-50',
-  refunded: 'text-blue-600 bg-blue-50',
-  failed:   'text-red-600 bg-red-50',
-}
+  paid: "text-green-600 bg-green-50",
+  pending: "text-orange-600 bg-orange-50",
+  cash: "text-indigo-600 bg-indigo-50",
+  refunded: "text-blue-600 bg-blue-50",
+  failed: "text-red-600 bg-red-50",
+  not_applicable: "text-slate-500 bg-slate-100",
+};
 
 function Badge({ status, styles }) {
-  const style = styles[status] || 'text-slate-600 bg-slate-100'
+  const style = styles[status] || "text-slate-600 bg-slate-100";
+
+  const displayTxt = status === "cash" ? "Cash" : formatStatus(status);
+
   return (
-    <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium ${style}`}>
+    <span
+      className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium ${style}`}
+    >
       <span className="w-1.5 h-1.5 rounded-full bg-current" />
-      {formatStatus(status)}
+      {displayTxt}
     </span>
-  )
+  );
 }
 
 export default function AppointmentDetailsModal({ appointment, onClose }) {
+  let displayPaymentStatus = appointment.payment_status;
+
+  if (appointment.status === "cancelled" && !appointment.payment_status) {
+    displayPaymentStatus = "not_applicable";
+  } else if (
+    appointment.type === "in_person" &&
+    (!appointment.payment_status || appointment.payment_status === "pending")
+  ) {
+    displayPaymentStatus = "cash";
+  }
+
   return (
     <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-[10px] w-full max-w-[672px] max-h-[90vh] overflow-y-auto">
-
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-[#E5E5E5]">
           <div>
-            <h2 className="text-base font-semibold text-slate-900">Appointment Details</h2>
+            <h2 className="text-base font-semibold text-slate-900">
+              Appointment Details
+            </h2>
             <p className="text-xs text-slate-400 mt-0.5">
               {formatAppointmentId(appointment.appointment_id)}
             </p>
           </div>
-          <button onClick={onClose} className="text-slate-400 hover:text-slate-600">
+          <button
+            onClick={onClose}
+            className="text-slate-400 hover:text-slate-600"
+          >
             <X size={18} />
           </button>
         </div>
 
         <div className="px-6 py-5 space-y-5">
-
           {/* Patient */}
           <div className="flex items-center gap-3 pb-4 border-b border-[#E5E5E5]">
             <div className="w-9 h-9 rounded-full bg-blue-100 flex items-center justify-center">
@@ -52,7 +73,9 @@ export default function AppointmentDetailsModal({ appointment, onClose }) {
             </div>
             <div>
               <p className="text-xs text-slate-400">Patient</p>
-              <p className="text-sm font-semibold text-slate-900">{appointment.patient}</p>
+              <p className="text-sm font-semibold text-slate-900">
+                {appointment.patient}
+              </p>
             </div>
           </div>
 
@@ -63,8 +86,12 @@ export default function AppointmentDetailsModal({ appointment, onClose }) {
             </div>
             <div>
               <p className="text-xs text-slate-400">Doctor</p>
-              <p className="text-sm font-semibold text-slate-900">{appointment.doctor}</p>
-              <p className="text-xs text-slate-400">{appointment.specialty || '—'}</p>
+              <p className="text-sm font-semibold text-slate-900">
+                {appointment.doctor}
+              </p>
+              <p className="text-xs text-slate-400">
+                {appointment.specialty || ""}
+              </p>
             </div>
           </div>
 
@@ -72,21 +99,29 @@ export default function AppointmentDetailsModal({ appointment, onClose }) {
           <div className="grid grid-cols-2 gap-4 pb-4 border-b border-[#E5E5E5]">
             <div>
               <p className="text-xs text-slate-400 mb-1">Date & Time</p>
-              <p className="text-sm font-medium text-slate-900">{appointment.date}</p>
+              <p className="text-sm font-medium text-slate-900">
+                {appointment.date}
+              </p>
               <p className="text-sm text-slate-600">{appointment.time}</p>
             </div>
             <div>
               <p className="text-xs text-slate-400 mb-1">Type</p>
               <div className="flex items-center gap-1.5">
-                {appointment.type === 'video' ? (
+                {appointment.type === "video" ? (
                   <Video size={14} className="text-purple-500" />
                 ) : (
                   <MapPin size={14} className="text-blue-500" />
                 )}
-                <span className={`text-sm font-medium ${
-                  appointment.type === 'video' ? 'text-purple-600' : 'text-blue-600'
-                }`}>
-                  {appointment.type === 'video' ? 'Video Consultation' : 'In-person Visit'}
+                <span
+                  className={`text-sm font-medium ${
+                    appointment.type === "video"
+                      ? "text-purple-600"
+                      : "text-blue-600"
+                  }`}
+                >
+                  {appointment.type === "video"
+                    ? "Video Consultation"
+                    : "In-person Visit"}
                 </span>
               </div>
             </div>
@@ -100,10 +135,10 @@ export default function AppointmentDetailsModal({ appointment, onClose }) {
             </div>
             <div>
               <p className="text-xs text-slate-400 mb-1">Payment Status</p>
-              {appointment.payment_status ? (
-                <Badge status={appointment.payment_status} styles={PAYMENT_STYLES} />
+              {displayPaymentStatus ? (
+                <Badge status={displayPaymentStatus} styles={PAYMENT_STYLES} />
               ) : (
-                <span className="text-sm text-slate-400">—</span>
+                <span className="text-sm text-slate-400"> </span>
               )}
             </div>
           </div>
@@ -115,12 +150,13 @@ export default function AppointmentDetailsModal({ appointment, onClose }) {
                 <DollarSign size={16} className="text-green-600" />
                 <div>
                   <p className="text-xs text-slate-400">Total Amount</p>
-                  <p className="text-lg font-bold text-slate-900">${appointment.amount}</p>
+                  <p className="text-lg font-bold text-slate-900">
+                    ${appointment.amount}
+                  </p>
                 </div>
               </div>
             </div>
           )}
-
         </div>
 
         {/* Footer */}
@@ -132,8 +168,7 @@ export default function AppointmentDetailsModal({ appointment, onClose }) {
             Close
           </button>
         </div>
-
       </div>
     </div>
-  )
+  );
 }
